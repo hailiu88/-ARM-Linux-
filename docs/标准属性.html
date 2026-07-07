@@ -1,0 +1,574 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>标准属性 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="标准属性"><a class="header" href="#标准属性">标准属性</a></h2>
+<p>设备树规范定义了一些标准规范。标准规范定义了大部分设备树都需要的属性，设备树编写者只要按照这些标准属性的使用方法使用即可。除了这些标准属性外，设备驱动程序编写人员还可以定义自己的属性，当然，这些属性只能供自己在编写设备驱动程序时使用，或供其它同类设备驱动程序编写人员使用。</p>
+<p>在描述属性时经常要用到一个叫做单元的概念，在设备树中，一个单元是指一个32位的无符号整数。</p>
+<h3 id="compatible属性"><a class="header" href="#compatible属性">compatible属性</a></h3>
+<p>Compatible的值为字符串列表，通常以制造商、型号对的形式出现，《制造商、型号》对在字符串列表出现的次序为属性越专用，越先出现，越通用，越靠后出现。Linux内核利用该值选择与设备兼容的驱动程序。字符串必须为小写字符、数字0-9和破折号，第一个字符为小写字符，如</p>
+<pre><code>compatible = “fsl, mpc8641” , ”ns16550”
+</code></pre>
+<h3 id="model属性"><a class="header" href="#model属性">model属性</a></h3>
+<p>model属性的值为字符串，用以表示器件的型号，通常应采用制造商，型号的形式，如：</p>
+<pre><code>model = “fsl, MPC8349EMITX”
+</code></pre>
+<h3 id="phandle属性"><a class="header" href="#phandle属性">phandle属性</a></h3>
+<p>Phandle属性的值为32位无符号整数，当一个节点设置了phandle属性，可以通过该phandle的值访问该节点，比如，当采用如下方式定义节点pic的属性：</p>
+<pre><code>pic@10000000 {
+
+phandle = &lt;1&gt;;
+
+interrupt-controller;
+
+reg = &lt;0x10000000, 0x100&gt;;
+
+};
+</code></pre>
+<p>时，它定义了一个值等于1的phandle。这时，其它节点可以利用1引用pic节点，如</p>
+<pre><code>regulator@1 {
+
+interrupt-parent = &lt;1\1&gt;;
+
+}
+</code></pre>
+<p>表示regulator@1的中断控制器为pic@1000000。</p>
+<h3 id="status属性"><a class="header" href="#status属性">status属性</a></h3>
+<p>status属性用来指示器件的运行状态，status的值只能是okay，disabled，reserved，failed，failed-sss当中的一个，其中sss为错误代码。当节点缺省status属性时，其默认值为okay。如果基于已有的设备树编写一个新的系统的设备树，可以将新系统中不支持的器件节点的status属性置为”disabled”，这样，系统在启动时就不会查询该设备。</p>
+<h3 id="address-cells和size-cells属性"><a class="header" href="#address-cells和size-cells属性">#address-cells和#size-cells属性</a></h3>
+<p>一个节点的#address-cells和#size-cells属性定义访问其子节点的方法，设备树以32位作为一个单元，#address-cells定义子节点reg属性中用多少个32位单元定义子节点地址，#size-cells定义子节点reg属性中用多少个单元定义子节点的空间大小，比如，若节点中#address-cells和size-cells分别为：</p>
+<pre><code>address-cells = &lt;2&gt;;
+
+size-cells = &lt;1&gt;;
+</code></pre>
+<p>则其子节点中reg属性应该用如下方式定义：</p>
+<pre><code>reg = &lt;0x10000000 0x00000008 0x100&gt;
+</code></pre>
+<p>其中0x1000000000000000表示该子节点地址，要用两个单元表示，该子节点占用的空间大小为0x100，表示该空间大小时需要采用一个单元。</p>
+<h3 id="reg属性"><a class="header" href="#reg属性">reg属性</a></h3>
+<p>reg属性表示节点地址及该节点空间大小，其中用于表示地址的单元数和表示空间的单元数由其父节点的#address-cells属性和#size-cells属性决定。如果子节点占用多个不连续的地址空间，可以用多组地址、大小组合表示，比如，一个节点占用了从0x10000000开始的100个地址和从0x200000000开始的200个地址，又假设该节点的地址和大小均用一个单元表示，则该节点的reg属性可以表示为：</p>
+<pre><code>reg = &lt;0x10000000 100 0x20000000 200&gt;;
+</code></pre>
+<p>如果#size-cells = &lt;0&gt;，reg当中表示大小的部分可以省略。</p>
+<h3 id="ranges-属性"><a class="header" href="#ranges-属性">ranges 属性</a></h3>
+<p>ranges属性用来定义子节点到父节点之间的地址转换，其格式为：</p>
+<pre><code>ranges = &lt;[子节点地址 父节点地址 范围] [子节点地址 父节点地址范围]…&gt;
+</code></pre>
+<p>其中，表示子节点地址所需的单元数由父节点内的#address-cells决定，也就是range属性所在的节点内的#address-cells的值决定，父节点地址所用单元数由父节点上一级的#address-cells的值决定。若range的为空，则子节点和父节点地址空间相同，在下面的例子中，</p>
+<pre><code>bus{
+
+    #address-cells = &lt;2&gt;;
+
+    soc {
+
+    compatible = "simple-bus";
+
+    #address-cells = &lt;1&gt;;
+
+    #size-cells = &lt;1&gt;;
+
+    ranges = &lt;0x0 0xe0000000 0x00000000 0x00100000&gt;;
+
+    serial@4600 {
+
+        device_type = "serial";
+
+        compatible = "ns16550";
+
+         reg = \&lt;0x4600 0x100&gt;;
+
+        clock-frequency = &lt;0&gt;;
+
+        interrupts = &lt;0xA 0x8&gt;;
+
+        interrupt-parent = \&lt;&amp;ipic\&gt;;
+
+        };
+
+    };
+
+}；
+</code></pre>
+<p>soc内的#address-cells的值为1，所以在ranges定义中，serial地址占用一个单元，而在bus节点内，#address-cells的值等于2，所以父地址(soc地址)占用两个单元，即，soc地址为0xE000000000000000，这样，serial在soc中的地址为0xE000000000004600。</p>
+<h3 id="dma-ranges属性"><a class="header" href="#dma-ranges属性">dma-ranges属性</a></h3>
+<p>与ranges属性格式相同，用于把dma空间地址映射到其父空间地址。</p>
+<h3 id="interrupts属性"><a class="header" href="#interrupts属性">interrupts属性</a></h3>
+<p>interrupts属性用于能够产生中断的器件，该属性没有标准的定义方式，一般与器件绑定，由设备提供方或驱动程序编写者定义，相应的绑定文件通常可在Documenntation/devicetree/bindings目录里找到。大部分情况下，interrupts属性的值由中断号和中断方式（上升沿/下降沿/电平）组成，如：</p>
+<pre><code>interrupts = &lt;0xA 1&gt;;
+</code></pre>
+<p>该值的意义可以解释为中断号10，上升沿中断，当然也可以有其它解释，如何解释由该中断的绑定文件定义。</p>
+<h3 id="interrupt-parent属性"><a class="header" href="#interrupt-parent属性">interrupt-parent属性</a></h3>
+<p>interrupt-parent属性用以定义中断的上一级中断控制器。目前，有许多中断控制器结构是分层实现的，interrupt-parent属性可以反映这样的层次结构。如果中断的上一级控制器节点定义了句柄，则interrupt-parent的值是在上一层控制器定义的句柄，如果它的上一级控制器节点定义了标号，则interrupt-parent属性的值可以利用所定义的标号。下面给出了利用句柄和标号作为interrupt-parent属性值的实例。</p>
+<p>若在中断的上一级控制器节点有phandle = &lt;1&gt;;</p>
+<p>则interrupt-parent属性可定义为：</p>
+<pre><code>interrupt-parent = &lt;1&gt;;
+</code></pre>
+<p>如果中断的上一级控制器节点定义了标号intc1:，则interrupt-parent属性可定义为：</p>
+<pre><code>interrupt-parent = &lt;&amp;intc1&gt;;
+</code></pre>
+<h3 id="interrupt-cells属性"><a class="header" href="#interrupt-cells属性">interrupt-cells属性</a></h3>
+<p>该属性用于中断控制器，由于指明该控制器控制范围内中断属性，也就是上面介绍的interrupts属性占用的单元数，在3.2.9的例子中，中断属性占用两个单元。</p>
+<h3 id="interrupt-controller属性"><a class="header" href="#interrupt-controller属性">interrupt-controller属性</a></h3>
+<p>该属性作用于中断控制器，用于说明属性所在的节点为中断控制器。interrupt-controller属性不需要值，其定义方法为：</p>
+<pre><code>intc1: intc@100{
+
+interrupt-controller;
+
+}
+</code></pre>
+<h3 id="关联nexus节点"><a class="header" href="#关联nexus节点">关联(Nexus)节点</a></h3>
+<p>所谓关联节点是指具有#specifier-cells属性的节点，其中#specifier-cells属性定义specifer占用的单元数。specifier通常用来指示一个模块，如#gpio-cells中的specifier为gpio，对应一个GPIO模块。而#specifier-cells的值表示指定specifier内的一个单位时需要的单元数。如果一个节点有#gpio-cells
+= &lt;1&gt;；属性定义，则该节点为一个关联节点，指示符占用一个单元。</p>
+<p>下面以imx6q gpio1模块为例说明关联节点的使用方法。</p>
+<p>在支持imx6q/imx6dl 的Linux设备树文件imx6qdl.dtsi中，gpio1节点的定义为：</p>
+<pre><code>gpio1: gpio@209C000 {
+
+compatible = “fsl, imx6q-gpio”, “fsl, imx35-gpio”;
+
+reg = &lt;0x0209C000 0x4000&gt;;
+
+interrupts = &lt;0 66 IRQ_TYPE_LEVEL_HIGH&gt;, &lt;0 67 IRQ_TYPE_LEVEL_HIGH&gt;;
+
+gpio-controller;
+
+gpio-cells = &lt;2&gt;;
+
+interrupt-controller;
+
+#interrupt-cells = &lt;2&gt;;
+
+};
+</code></pre>
+<p>在上面的例子中，interrupts属性说明该节点能够产生中断，interrupts有三个单元，说明其父节点的#interrupt-cells=&lt;3&gt;，即，其父节点要指示一个中断要用3个单元。对imx6q而言，第一个单元用于表示gpio模块编号，第二个单元为中断编号，第三个单元说明中断类型。</p>
+<p>gpio-controller属性说明该模块为gpio控制模块，驱动程序可以依据该属性判断该模块具有gpio控制功能。</p>
+<p>#gpio-cells =&lt;2&gt;表示要指定该模块的一个单位需要使用两个单元，第一个表示gpio管脚编号，第二个编号表示gpio状态，比如ACTIVE_LOW。</p>
+<p>interrupt-controller属性说明该gpio模块还是一个中断控制器，#interrupt-cells=&lt;2&gt;说明要指定该中断控制器所控制的中断需要两个单元，第一个单元指定中断编号，第二个单元指明中断类型。由于已知中断发生在gpio1内，因此不需要象其父节点一样要指定gpio编号。</p>
+<p>此外还有&lt;specifier&gt;-map、&lt;specifier&gt;-map-mask、&lt;specifier&gt;-map-pass-thru等属性，使用范围没有#&lt;specifier&gt;-cells广，这里不作介绍，可以参考设备树规范。</p>
+<p>上面介绍了少量标准属性，设备树标准只定义了少量属性。由于设备树非常灵活，而自定义属性并不会影响其它设备运行，设备树使用了许多供应商自定义属性。</p>
+<h2 id="标准属性-1"><a class="header" href="#标准属性-1">标准属性</a></h2>
+<p>设备树规范定义了一些标准规范。标准规范定义了大部分设备树都需要的属性，设备树编写者只要按照这些标准属性的使用方法使用即可。除了这些标准属性外，设备驱动程序编写人员还可以定义自己的属性，当然，这些属性只能供自己在编写设备驱动程序时使用，或供其它同类设备驱动程序编写人员使用。</p>
+<p>在描述属性时经常要用到一个叫做单元的概念，在设备树中，一个单元是指一个32位的无符号整数。</p>
+<h3 id="compatible属性-1"><a class="header" href="#compatible属性-1">compatible属性</a></h3>
+<p>Compatible的值为字符串列表，通常以制造商、型号对的形式出现，《制造商、型号》对在字符串列表出现的次序为属性越专用，越先出现，越通用，越靠后出现。Linux内核利用该值选择与设备兼容的驱动程序。字符串必须为小写字符、数字0-9和破折号，第一个字符为小写字符，如</p>
+<pre><code>compatible = "fsl, mpc8641" , "ns16550"
+</code></pre>
+<h3 id="model属性-1"><a class="header" href="#model属性-1">model属性</a></h3>
+<p>model属性的值为字符串，用以表示器件的型号，通常应采用制造商，型号的形式，如：</p>
+<pre><code>model = "fsl, MPC8349EMITX"
+</code></pre>
+<h3 id="phandle属性-1"><a class="header" href="#phandle属性-1">phandle属性</a></h3>
+<p>Phandle属性的值为32位无符号整数，当一个节点设置了phandle属性，可以通过该phandle的值访问该节点，比如，当采用如下方式定义节点pic的属性：</p>
+<pre><code>pic@10000000 {
+
+phandle = &lt;1&gt;;
+
+interrupt-controller;
+
+reg = &lt;0x10000000, 0x100&gt;;
+
+};
+</code></pre>
+<p>时，它定义了一个值等于1的phandle。这时，其它节点可以利用1引用pic节点，如</p>
+<pre><code>regulator@1 {
+
+interrupt-parent = &lt;1&gt;;
+
+}
+</code></pre>
+<p>表示regulator@1的中断控制器为pic@1000000。</p>
+<h3 id="status属性-1"><a class="header" href="#status属性-1">status属性</a></h3>
+<p>status属性用来指示器件的运行状态，status的值只能是okay，disabled，reserved，failed，failed-sss当中的一个，其中sss为错误代码。当节点缺省status属性时，其默认值为okay。如果基于已有的设备树编写一个新的系统的设备树，可以将新系统中不支持的器件节点的status属性置为“disabled“，这样，系统在启动时就不会查询该设备。</p>
+<h3 id="address-cells和size-cells属性-1"><a class="header" href="#address-cells和size-cells属性-1">#address-cells和#size-cells属性</a></h3>
+<p>一个节点的#address-cells和#size-cells属性定义访问其子节点的方法，设备树以32位作为一个单元，#address-cells定义子节点reg属性中用多少个32位单元定义子节点地址，#size-cells定义子节点reg属性中用多少个单元定义子节点的空间大小，比如，若节点中#address-cells和size-cells分别为：</p>
+<pre><code>address-cells = &lt;2&gt;;
+
+size-cells = &lt;1&gt;;
+</code></pre>
+<p>则其子节点中reg属性应该用如下方式定义：</p>
+<pre><code>reg = &lt;0x10000000 0x00000008 0x100&gt;
+</code></pre>
+<p>其中0x1000000000000000表示该子节点地址，要用两个单元表示，该子节点占用的空间大小为0x100，表示该空间大小时需要采用一个单元。</p>
+<h3 id="reg属性-1"><a class="header" href="#reg属性-1">reg属性</a></h3>
+<p>reg属性表示节点地址及该节点空间大小，其中用于表示地址的单元数和表示空间的单元数由其父节点的#address-cells属性和#size-cells属性决定。如果子节点占用多个不连续的地址空间，可以用多组地址、大小组合表示，比如，一个节点占用了从0x10000000开始的100个地址和从0x200000000开始的200个地址，又假设该节点的地址和大小均用一个单元表示，则该节点的reg属性可以表示为：</p>
+<pre><code>reg = &lt;0x10000000 100 0x20000000 200&gt;;
+</code></pre>
+<p>如果#size-cells = &lt;0&gt;，reg当中表示大小的部分可以省略。</p>
+<h3 id="ranges-属性-1"><a class="header" href="#ranges-属性-1">ranges 属性</a></h3>
+<p>ranges属性用来定义子节点到父节点之间的地址转换，其格式为：</p>
+<pre><code>ranges = &lt;[子节点地址 父节点地址 范围] [子节点地址 父节点地址范围]...&gt;
+</code></pre>
+<p>其中，表示子节点地址所需的单元数由父节点内的#address-cells决定，也就是range属性所在的节点内的#address-cells的值决定，父节点地址所用单元数由父节点上一级的#address-cells的值决定。若range的为空，则子节点和父节点地址空间相同，在下面的例子中，</p>
+<pre><code>bus{
+
+#address-cells = &lt;2&gt;;
+
+soc {
+
+    compatible = "simple-bus";
+
+    #address-cells = &lt;1&gt;;
+
+    #size-cells = &lt;1&gt;;
+
+    ranges = &lt;0x0 0xe0000000 0x00000000 0x00100000&gt;;
+
+    serial@4600 {
+
+        device_type = "serial";
+
+        compatible = "ns16550";
+
+        reg = &lt;0x4600 0x100&gt;;
+
+        clock-frequency = &lt;0&gt;;
+
+        interrupts = &lt;0xA 0x8&gt;;
+
+        interrupt-parent = &lt;&amp;ipic&gt;;
+
+        };
+
+    };
+
+}；
+</code></pre>
+<p>soc内的#address-cells的值为1，所以在ranges定义中，serial地址占用一个单元，而在bus节点内，#address-cells的值等于2，所以父地址(soc地址)占用两个单元，即，soc地址为0xE000000000000000，这样，serial在soc中的地址为0xE000000000004600。</p>
+<h3 id="dma-ranges属性-1"><a class="header" href="#dma-ranges属性-1">dma-ranges属性</a></h3>
+<p>与ranges属性格式相同，用于把dma空间地址映射到其父空间地址。</p>
+<h3 id="interrupts属性-1"><a class="header" href="#interrupts属性-1">interrupts属性</a></h3>
+<p>interrupts属性用于能够产生中断的器件，该属性没有标准的定义方式，一般与器件绑定，由设备提供方或驱动程序编写者定义，相应的绑定文件通常可在Documenntation/devicetree/bindings目录里找到。大部分情况下，interrupts属性的值由中断号和中断方式（上升沿/下降沿/电平）组成，如：</p>
+<pre><code>interrupts = &lt;0xA 1&gt;;
+</code></pre>
+<p>该值的意义可以解释为中断号10，上升沿中断，当然也可以有其它解释，如何解释由该中断的绑定文件定义。</p>
+<h3 id="interrupt-parent属性-1"><a class="header" href="#interrupt-parent属性-1">interrupt-parent属性</a></h3>
+<p>interrupt-parent属性用以定义中断的上一级中断控制器。目前，有许多中断控制器结构是分层实现的，interrupt-parent属性可以反映这样的层次结构。如果中断的上一级控制器节点定义了句柄，则interrupt-parent的值是在上一层控制器定义的句柄，如果它的上一级控制器节点定义了标号，则interrupt-parent属性的值可以利用所定义的标号。下面给出了利用句柄和标号作为interrupt-parent属性值的实例。</p>
+<p>若在中断的上一级控制器节点有phandle = &lt;1&gt;;</p>
+<p>则interrupt-parent属性可定义为：</p>
+<pre><code>interrupt-parent = &lt;1&gt;;
+</code></pre>
+<p>如果中断的上一级控制器节点定义了标号intc1:，则interrupt-parent属性可定义为：</p>
+<pre><code>interrupt-parent = &lt;&amp;intc1&gt;;
+</code></pre>
+<h3 id="interrupt-cells属性-1"><a class="header" href="#interrupt-cells属性-1">interrupt-cells属性</a></h3>
+<p>该属性用于中断控制器，由于指明该控制器控制范围内中断属性，也就是上面介绍的interrupts属性占用的单元数，在3.2.9的例子中，中断属性占用两个单元。</p>
+<h3 id="interrupt-controller属性-1"><a class="header" href="#interrupt-controller属性-1">interrupt-controller属性</a></h3>
+<p>该属性作用于中断控制器，用于说明属性所在的节点为中断控制器。interrupt-controller属性不需要值，其定义方法为：</p>
+<pre><code>intc1: intc@100{
+
+    interrupt-controller;
+
+}
+</code></pre>
+<h3 id="关联nexus节点-1"><a class="header" href="#关联nexus节点-1">关联(Nexus)节点</a></h3>
+<p>所谓关联节点是指具有#specifier-cells属性的节点，其中#specifier-cells属性定义specifer占用的单元数。specifier通常用来指示一个模块，如#gpio-cells中的specifier为gpio，对应一个GPIO模块。而#specifier-cells的值表示指定specifier内的一个单位时需要的单元数。如果一个节点有#gpio-cells = &lt;1&gt;；属性定义，则该节点为一个关联节点，指示符占用一个单元。</p>
+<p>下面以imx6q gpio1模块为例说明关联节点的使用方法。</p>
+<p>在支持imx6q/imx6dl 的Linux设备树文件imx6qdl.dtsi中，gpio1节点的定义为：</p>
+<pre><code>gpio1: gpio@209C000 {
+
+    compatible = "fsl, imx6q-gpio", "fsl, imx35-gpio";
+
+    reg = &lt;0x0209C000 0x4000&gt;;
+
+    interrupts = &lt;0 66 IRQ_TYPE_LEVEL_HIGH&gt;, &lt;0 67 IRQ_TYPE_LEVEL_HIGH\&gt;;
+
+    gpio-controller;
+
+    gpio-cells = &lt;2&gt;;
+
+    interrupt-controller;
+
+    #interrupt-cells = &lt;2&gt;;
+
+};
+</code></pre>
+<p>在上面的例子中，interrupts属性说明该节点能够产生中断，interrupts有三个单元，说明其父节点的#interrupt-cells = &lt;3&gt;，即，其父节点要指示一个中断要用3个单元。对imx6q而言，第一个单元用于表示gpio模块编号，第二个单元为中断编号，第三个单元说明中断类型。</p>
+<p>gpio-controller属性说明该模块为gpio控制模块，驱动程序可以依据该属性判断该模块具有gpio控制功能。</p>
+<p>#gpio-cells = &lt;2&gt;表示要指定该模块的一个单位需要使用两个单元，第一个表示gpio管脚编号，第二个编号表示gpio状态，比如ACTIVE_LOW。</p>
+<p>interrupt-controller属性说明该gpio模块还是一个中断控制器，#interrupt-cells = &lt;2&gt;说明要指定该中断控制器所控制的中断需要两个单元，第一个单元指定中断编号，第二个单元指明中断类型。由于已知中断发生在gpio1内，因此不需要象其父节点一样要指定gpio编号。</p>
+<p>此外还有&lt;specifier&gt;-map、&lt;specifier&gt;-map-mask、&lt;specifier&gt;-map-pass-thru等属性，使用范围没有#&lt;specifier&gt;-cells广，这里不作介绍，可以参考设备树规范。</p>
+<p>上面介绍了少量标准属性，设备树标准只定义了少量属性。由于设备树非常灵活，而自定义属性并不会影响其它设备运行，设备树使用了许多供应商自定义属性。</p>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="设备树结构.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="设备树节点.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="设备树结构.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="设备树节点.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

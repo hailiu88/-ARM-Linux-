@@ -1,0 +1,50 @@
+/* ==========================================================================
+   无差别全局强洗：管你什么主题，一律白底黑字
+   ========================================================================== */
+html, body, .page, .page-wrapper, .sidebar, .menu-bar, #menu-bar, .content main {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* 强制所有文本、标题、列表为纯黑 */
+h1, h2, h3, h4, h5, h6, p, li, span, a, td, th {
+    color: #000000 !important;
+}
+
+/* 顶部图标和侧边栏目录字色全部转黑 */
+.icon-button, .menu-bar i, .menu-bar a, .sidebar a {
+    color: #000000 !important;
+}
+
+/* 隐藏那个碍事的「切换主题」刷子按钮（既然只能白底黑字，就不需要它了） */
+#theme-toggle {
+    display: none !important;
+}
+
+/* ==========================================================================
+   核心隔离：代码区（保持浅灰底 + 正常彩色高亮）
+   ========================================================================== */
+pre, pre code {
+    background: #f6f8fa !important;
+    background-color: #f6f8fa !important;
+    color: #24292e !important; /* 放行基础字色，让高亮插件能染上颜色 */
+    border: 1px solid #e1e4e8 !important;
+}
+
+/* 行内代码 */
+:not(pre) > code {
+    background: #f6f8fa !important;
+    background-color: #f6f8fa !important;
+    color: #24292e !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+    border: 1px solid #e1e4e8 !important;
+}
+
+/* 引用块（Blockquote） */
+blockquote {
+    background-color: #f9f9f9 !important;
+    border-left: 4px solid #cccccc !important;
+    color: #333333 !important;
+}

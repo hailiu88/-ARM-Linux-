@@ -1,0 +1,534 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>页面交换与虚拟内存映射 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="页面交换与虚拟内存映射"><a class="header" href="#页面交换与虚拟内存映射">页面交换与虚拟内存映射</a></h2>
+<p>Linux系统每个进程都有自己独有的虚拟内存空间，每个空间可用的虚拟内存空间不受物理内存大小的约束。当进程需要的内存空间超出物理内存空间大小时，操作系统会把物理内存中部分目前不使用的内容写入到外部存储器，这部分用于临时保存物理内存内容的外部存储空间称作交换分区。为了方便文件交换，Linux在虚拟内存空间保留一些缓存区，供磁盘文件交换使用。</p>
+<p>由于Linux支持多进程运行，系统读入的文件或库函数可能会被多个进程使用。如果每次使用时都要从硬盘读取这些文件或库函数，势必会大大降低程序运行速度。因此，Linux还开辟一些用于保存共享数据的缓存区。</p>
+<p>程序在运行过程中会大量使用临时数据。由于计算机硬件结构的特点，如果把这些数据放在一起，不仅可以提高内存利用率，便于内存管理，同时可以通过立即数寻址或直接寻址方式、而非间接方式寻址访问数据，从而减少地址运算量，提高程序运行速度。这就产生了所谓堆和栈的概念。每个进程都有独立的堆和栈，即用于保存临时数据的缓存区。</p>
+<p>虽然用于磁盘文件交换的缓存区与进程堆栈有一些不同，但这两类缓存区有一个共同的特点，即无法通过虚拟地址直接访问内存，因此对这些缓存区的管理有许多共同之处。Linux采用同样的方法管理这两类缓存区，只是在映射方法上有所区别。</p>
+<p>为了便于缓存区管理，Linux把虚拟内存划分为两种类型。一种用于存储程序使用的数据，这类虚拟内存区域称之为匿名内存（Anonymous
+memory）。堆与栈均属于匿名内存。另一种内存用于与硬盘进行数据交换，这类内存称为文件备份内存（file
+backed
+memory）。备份内存用于存储读写磁盘文件、交换分区文件、库函数及程序本身。图
+15‑11显示各种文件与虚拟地址的映射关系。</p>
+<center>
+<figure>
+<img src="./media/image136.png" style="width:500px;height:auto" />
+<figcaption>
+<p> 图 15‑11各种类型文件与虚拟内存的映射</p>
+</figcaption>
+</figure>
+</center>
+<p>Linux通过物理页面描述符page的mapping字段中的最低位区分匿名内存和文件备份内存。当最低位（PAGE_MAPPING_ANON位）置位时，表示当前页为匿名内存，此时，mapping指向一个名为anon_vma的结构体（见15.4.2）。当最低位为0时，代表当前页为文件备份内存，此时mapping指向地址空间结构体（struct
+address_space）。</p>
+<h3 id="内存导出及页面释放"><a class="header" href="#内存导出及页面释放">内存导出及页面释放</a></h3>
+<p>使用文件备份内存时，由于物理内存空间大小的限制，进程需要经常与磁盘文件（普通文件和交换分区文件）进行数据交换。高效的文件交换机制能够降低磁盘读写次数，改善程序运行效率。Linux通过维护三类共五个长度固定的lru（least-recent-usage
+）链表进行页面交换。这五个lru链表分别为anon_active、anon_inactive、file_active、file_inactive及unevictable。其中anon_active和anon_inactive用于管理匿名内存的页面交换，file_active和file_inactive用于文件内存的交换，而unevictable保存了不能够导出到硬盘的页面，如当Linux采用ramfs文件系统时，该文件在整个系统运行期间就必须一直常驻内存。</p>
+<p>当进程读取内存时，如果所读页面在活跃链表，系统会把该页提升到活跃链表的首端，并把其前面的页面依次向后移动一个位置。如果页面位于非活跃链表，系统页会把该页提升到活跃链表的首端，并把非活跃链表中位于该页前面的各个内存页相应地向后移动一个位置。如果发生读错误，表示所需内容不在内存，此时操作系统页面出错处理程序会把位于非活跃链表（xx_inactive）尾端的页面释放（见第15.6节），并从硬盘读取正确的页面。在首次读取页面时，会把新读取的页面保留在非活跃链表首端，而把非活跃链表中其余各页依次向后移动一个位置。为了简单明了，这里简化了lru的管理过程。在实际操作中，还会考虑其它因素，比如在把页面从非活跃链表提升到活跃链表时会考虑同一页面发生两次访问间距离等因素，以避免不断重复释放与读取同一页面。在进行页面回收时也会对这些链表进行操作。图
+15‑12为几种常见的lru链表变化情况。</p>
+<center>
+<figure>
+<img src="./media/image137.png" style="width:480px;height:auto" />
+<figcaption>
+<p> 图 15‑12 访问页面时lru链表的变化</p>
+</figcaption>
+</figure>
+</center>
+<p>大部分lru链表及内存导出操作定义在文件git/mm/swap.c
+里。链表的转换或移动由函数mark_page_accessed()完成。希望了解更多细节的读者可以参考该文件的内容。</p>
+<h3 id="虚拟地址与缓存区地址的映射"><a class="header" href="#虚拟地址与缓存区地址的映射">虚拟地址与缓存区地址的映射</a></h3>
+<p>匿名内存和文件备份内存均存在于专用缓冲区。程序无法通过虚拟地址直接访问这类缓存区，需要通过映射把虚拟地址或文件位置映射到缓存区，从而能够从缓存区获取正确的数据。为了实现文件与匿名内存到缓存区的映射，Linux定义了四个结构体。它们的主要用途是管理进程的虚拟内存区间，并在线核发生页面置换或写时复制时，能够通过物理页面快速反向查找到所有引用它的虚拟内存区间。</p>
+<p>这些结构体主要包括：</p>
+<ul>
+<li>mm_struct结构体（简称之为mm结构体）</li>
+</ul>
+<blockquote>
+<p>地址空间描述符。每个进程只包含一个，主要包括指向该进程使用的缓存区、vma红黑树根节点、地址空间大小、总虚拟地址页数、进程使用的堆、栈、数据段、代码段、变量段、一个指向
+VMA
+链表的指针、环境变量段及各种计数和水印等字段。vma红黑树由所有使用该mm_struct的vma结构体组成。</p>
+</blockquote>
+<ul>
+<li>vm_area_struct结构体（简称之为vma结构体）</li>
+</ul>
+<blockquote>
+<p>虚拟区域描述符，用于描述进程使用的一段地址连续的虚拟内存空间。主要包含用于串接该进程所有缓存区的vm_next和vm_prev指针、虚拟地址开始地址、虚拟地址结束地址、用于挂接到mm_struct上vma红黑树的节点vm_rb、指向该缓存区隶属的mm_struct的指针、用于挂接到文件的
+address_space-&gt;i_mmap
+区间树的rb节点、指向与该缓存区关联的anon_vma结构体的指针、用于由关联该vma与anon_vma结构体的所有avc组成的链表表头anon_vma_chain、用于指向该缓存区对应文件的vm_file指针（匿名内存时为空指针）等。</p>
+</blockquote>
+<ul>
+<li>anon_vma结构体（简称之为av结构体）</li>
+</ul>
+<blockquote>
+<p>通过虚拟地址，利用页表，可以方便地找到页面对应的物理地址。由于页表是单向映射，通过物理地址找到页面对应的虚拟地址，即逆向映射，就非常困难。逆向映射的一个应用场景是在进行内存导出时，需通过逆向映射，找到物理页面对应的虚拟地址，修改虚拟地址在页表中对应的内容，使其指向页面在交换分区的位置。</p>
+<p>av结构体的作用是方便逆向查询。该结构体拥有6个字段，其中的root字段指向当前anom_vma树的根节点，parent指向派生(fork)当前进程的父进程对应的av。在进程派生多代以后，由于父/子进程的内存共享，子进程、孙子进程会形成复杂的内存独占/共享关系。为了方便关联，Linux通过树的形式组织这些进程的anon_vma结构体，所有的子孙
+anon_vma 都会通过 root 指针指向最初祖先的 anon_vma。</p>
+<p>degree字段表示子av个数，当degree&lt;2时，该结构体可以作为下一级子进程拥有的av结构体。</p>
+<p>rb_root字段是由avc结构体组成的红黑区间二叉树的根节点，本区间树链接了所有与当前av有关的vma。这棵树上挂载了所有与之相关的、映射了这片匿名内存区域的
+vma（具体是通过vma中的avc桥梁连接挂载的）。这棵树上挂接的是所有正在共享这片匿名物理内存的、来自不同进程（或线程）的vma。具体来说，它不仅包含当前进程的vma，还包含由它
+fork
+出来的子进程、孙子进程等所有后代进程的vma，前提是这些后代进程还在和它共享这段内存。如果子进程发生了写时复制
+，linux会把该子进程新分配的内存所对应的anon_vma挂接到自己的红黑区间二叉树上，开始管理自己的匿名内存页。</p>
+</blockquote>
+<ul>
+<li>anon_vma_chain结构体（简称之为avc结构体）</li>
+</ul>
+<blockquote>
+<p>avc的主要作用是通过把vma字段和anon_vma字段分别指向相关联的vma和av结构体，实现av和vma的关联。此外，该结构体还是以vma的anon_vma_chain字段为链表头的链表节点same_vma，以及以av的rb_root字段为根节点的红黑区间二叉树的节点rb。</p>
+<p>avc链表由avc的same_vma字段串接，表头为对应的vma结构体的anon_vma_chain字段，包含了所有与链表头所在的vma结构体关联的av结构体。红黑区间二叉树由字段rb串接，包含了所有与由anon_vma指定的结构体关联的vma结构体。</p>
+<p>在 Linux 内存管理的逆向映射机制中，av和
+avc共同解决了如何通过一个匿名的物理页，找到所有映射了它的虚拟内存区域这一核心问题。av内部的红黑树记录了所有可能映射了相同物理页的
+vma。</p>
+</blockquote>
+<p>图15‑13给出了由各种结构体的字段构成的结构体关系图，以便读者更直观地了解各种结构体的作用。</p>
+<center>
+<figure>
+<img src="./media/image139.jpg" style="width:7.32292in;height:3.9375in" />
+<figcaption>
+<p> 图 15‑13 mm结构体与vma结构体及由vma结构体构成的链表间的关系</p>
+</figcaption>
+</figure>
+</center>
+<p>由图15‑13可见，由mm结构体可以直接获得进程的第一个vma结构体。通过vma结构体可以获得进程占用的地址空间的许多参数。通过mm_struct结构体，还可以访问由所有vma组成的红黑二叉树，从而快速获取感兴趣的vma结构体。</p>
+<center>
+<figure>
+<img src="./media/image140.png" style="max-width:570px;width:100%;height:auto" />
+<figcaption>
+<p>图 15‑14 由进程的所有vma构成的链表</p>
+</figcaption>
+</figure>
+</center>
+<p>图15‑14所示为由进程的所有vma组成的链表，通过vma构成的链表，可以遍历进程的所有vma结构体。缺点是查询时间较长，适合需要遍历所有vma的场景。</p>
+<center>
+<figure>
+<img src="./media/image142.jpg" style="width:5.6883in;height:1.33582in" />
+<figcaption>
+<p> 图 15‑15 由avc组成的对应同一vma的链表</p>
+</figcaption>
+</figure>
+</center>
+<p>当系统产生一个进程时，会生成一个avc结构体，并把该结构体与进程的vma结构体关联。当该进程派生一个子进程时，调用函数dup_mmap()克隆vma结构体（可参考文件git/kernel/fork.c文件中的kernel_clone()、fork_idle()、copy_process()、copy_mm()、dup_mm()、dup_mmap()）。在克隆父进程的vma结构体后，把父进程的页表项拷贝到子进程。也就是说，子进程不会占用新的物理内存。只有当子进程产生了新的数据需要写入vma对应的内存时才会为子进程分配新的内存。</p>
+<p>在克隆了vma后，通过函数anon_vma_fork()调用anon_vma_clone()，遍历父进程的avc链表（表头为anon_vma_chain）。每遍历一个avc，子进程创建一个avc，并把把父进程相应的anon_vma结构体及通过克隆得到的子进程的vma赋予avc，然后把新的avc添加到以克隆的vma的anon_vma_chain为表头的链表及以av的rb_root为根节点的红黑区间二叉树当中，从而把父进程的anon_vma链克隆到子进程。这样做的目的就是为子进程的新
+vma 建立 anon_vma 关系，使父子进程能够共享匿名页并支持 COW（Copy On
+Write）与 rmap逆向映射。</p>
+<p>图15‑15为以vma结构体中anon_vma_chain字段为表头的、由关联同一个vma结构体的所有avc结构体构成的链表。该链表通过same_vma串接在一起。图
+15‑16为由av结构体的rb_root字段为根节点、由与根节点av关联的所有avc组成的红黑区间二叉树，该二叉树通过进程派生形成，树上的avc包含了所有与根节点关联的vma。图
+15‑17为发生COW之前子进程的avc链表。</p>
+<center>
+<figure>
+<img src="./media/image144.jpg" style="width:6.64238in;height:4.19403in" />
+<figcaption>
+<p> 图 15‑16以av的rb_root为根节点的红黑区间二叉树</p>
+</figcaption>
+</figure>
+</center>
+<center>
+<figure>
+<img src="./media/image146.jpg" style="width:6.88542in;height:5.90625in" />
+<figcaption>
+<p>图 15‑17派生子进程（还没有COW时）对anon_vma的管理</p>
+</figcaption>
+</figure>
+</center>
+<p>vma、avc和av的关系可形象地用图 15‑18表示，avc类似于开关阵列中的开关，用以实现vma和av的多对多关联。</p>
+<center>
+<figure>
+<img src="./media/image148.jpg" style="width:6.69792in;height:5.51042in" />
+<figcaption>
+<p>图 15‑18 vma、av及avc的关系</p>
+</figcaption>
+</figure>
+</center>
+<p>查找映射到同一物理页的虚拟内存空间的函数主要封装在page_referenced_anon() 等逆映射核心函数中。其标准实现逻辑为：</p>
+<ul>
+<li>通过物理页（page-&gt;mapping）获取对应的 anon_vma</li>
+</ul>
+<blockquote>
+<p>每个匿名物理页的 page-&gt;mapping
+指针并没有直接指向文件，而是指向了管理它的 anon_vma 结构体。</p>
+</blockquote>
+<ul>
+<li>
+<p>遍历 anon_vma 中红黑树的每一个avc</p>
+</li>
+<li>
+<p>由avc获取一个映射到该物理页的vma。</p>
+</li>
+</ul>
+<p>通过遍历anon_vma中红黑树上的所有的avc，可以获取映射到同一物理页的所有虚拟内存空间。</p>
+<p>除了用于内存映射外，在进行相同内容页面合并（kernel same-page
+merging—KSM）时，以av的rb_root为根节点的红黑区间二叉树还用于扫描可以合并使用的、具有相同内容的页面。</p>
+<h3 id="匿名内存到缓存区的映射"><a class="header" href="#匿名内存到缓存区的映射">匿名内存到缓存区的映射</a></h3>
+<p>匿名内存到缓存区的映射就是把指定内存设为缓存区，在进行参数的合规性检测后，主要任务就是初始化vma各个字段的值，使vma对应要映射的内存区域，并满足要求的属性。图15‑19所示为把指定内存设置为缓存区的流程图。</p>
+<center>
+<figure>
+<img src="./media/image149.png" style="max-width:570px;height:auto" />
+<figcaption>
+<p> 图 15‑19匿名内存映射过程</p>
+</figcaption>
+</figure>
+</center>
+<p>在映射过程中，可能会涉及到查找现有vma的过程，以确定指定区域的起始地址是否位于某个vma对应的虚拟内存空间。查找过程遍历进程使用的mm结构体的红黑二叉树（根由vm_rb字段指定）。用所指定区域的起始虚拟地址address与遍历到的每个vma中vm_start及vm_end进行比较。若vma-&gt;vm_start &lt;= address &lt; vma-&gt;vm_end，则说明vma对应的虚拟内存空间覆盖该起始地址。查找过程涉及到的各种结构体的关系示于图15‑20。</p>
+<center>
+<figure>
+<img src="./media/image150.png" style="width:447px;height:auto" />
+<figcaption>
+<p> 图 15‑20利用虚拟地址查找对应的vma</p>
+</figcaption>
+</figure>
+</center>
+<h3 id="文件备份内存到缓存区的映射"><a class="header" href="#文件备份内存到缓存区的映射">文件备份内存到缓存区的映射</a></h3>
+<p>文件备份内存用于把硬盘文件备份到内存指定区域。由于磁盘文件不像匿名内存那样本身就位于虚拟内存空间，需要把硬盘文件与虚拟内存通过一定的方式关联起来。起该作用的是叫做地址空间的结构体（struct
+address_space），定义在git/include/linux/fs.h文件里。地址空间结构体与内核空间文件描述符（struct
+file）及节点索引结构体（struct
+inode）一起完成磁盘文件到虚拟内存空间的映射。</p>
+<p>地址空间结构体用于定义可缓存及映射的对象。该结构体包括拥有该结构体的对象（inode或块式存储器）及缓存的页数等多个字段等，还包含了写页面、读页面、设置脏页标识、页面隔离及页面迁移等多达22个操作函数。其中用于确定映射关系的为i_mmap字段，该字段为指向缓存在缓存区的、由vma组成的红黑二叉树。二叉树上的vma节点通过vma结构体的二叉树节点shard.rb串接在一起。在进行备份文件映射时，通过调用函数_vma_link_file()把vma节点插入该二叉树，使文件与vma关联起来。利用该二叉树可以查询文件对应的vma并确定文件在备份内存的映射地址。图
+15‑21所示为缓存的红黑区间二叉树。</p>
+<p>地址空间结构体中另一个比较重要的字段是i_pages，该字段为一个可扩充数组（xArray），它包含了所有缓存的物理页描述符（5.15及之前的版本，新版xArray保存的是struct
+folio类数据指针）。利用可扩充数组功能模块提供的各种函数，通过物理页面描述符中的index字段的值，可以直接对缓存的页面描述符进行读、写、标识位更新等操作。</p>
+<center>
+<figure>
+<img src="./media/image152.jpg" style="width:3.97791in;height:2.98507in" />
+<figcaption>
+<p> 图 15‑21缓存的红黑区间二叉树</p>
+</figcaption>
+</figure>
+</center>
+<p>内核空间文件描述符用于描述系统已打开的文件，供用户通过fopen()等函数打开、读写和关闭文件等操作。该结构体包括的字段有文件路径结构体f_path、指向inode结构体的指针f_inode、指向地址空间结构体的指针f_mapping、通过f_op指定的文件打开（open）、关闭（close）、读（read）、写（write）、位置查询（llseek）、映射（mmap）、获取未映射区域（get_unmapped_area）等操作函数（也称作方法，有相应的c函数或系统调用）。用于缓存区映射的为f_mapping、f_inode、mmap()函数及get_unmapped_area()函数，其中mmap()函数负责把文件映射到vma，get_unmapped_area()函数用于获取没有映射的内存区域起始地址。</p>
+<p>节点索引结构体存储文件的元数据，是Linux文件信息的主要载体。它记录了文件模式、用户身份标识（uid）、组标识（gid）、文件大小、文件类型、文件修改时间、文件最后访问时间、几个指向磁盘区块的指针以及管理用数据等大量信息，还提供了操作文件及节点索引结构体的方法。文件内容本身没有保存在inode。操作文件的方法利用文件描述符提供的方法，而操作节点索引结构体的方法主要有缓存区目录表查询、link()、unlink()、mknode()、rmnode()、mkdir()、rmdir()、setattr()等多种函数。节点索引结构体用于内存映射的字段为i_mapping，该字段为指向地址空间结构体的指针。各个结构体及红黑区间二叉树之间的关系示于图
+15‑22。</p>
+<center>
+<figure>
+<img src="./media/image153.png" style="max-width:652px;width:100%;height:auto" />
+<figcaption>
+<p> 图 15‑22文件备份内存及磁盘文件映射关系</p>
+</figcaption>
+</figure>
+</center>
+<h3 id="物理地址到虚拟内存地址的逆向映射"><a class="header" href="#物理地址到虚拟内存地址的逆向映射">物理地址到虚拟内存地址的逆向映射</a></h3>
+<p>由于进程派生及内存共享，同一个物理页面可能被映射到不同的虚拟地址，图
+15‑23为进程派生过程形成的同一页内存映射到3页不同虚拟内存的情况。派生进程时，派生的子进程的通过其VMA
+的 anon_vma_chain 同时连接了父进程的
+anon_vma（用于反向映射共享的旧页面）以及子进程在 fork 时新创建的专属
+anon_vma（用于未来存储独占的新页面）。</p>
+<center>
+<figure>
+<img src="./media/image154.jpg" style="width:2.04229in;height:2.51493in" />
+<figcaption>
+<p> 图15‑23物理内存页面与虚拟地址间的映射</p>
+</figcaption>
+</figure>
+</center>
+<p>通过前面的内容我们知道，利用虚拟地址，通过页表表项（pte），可以得到虚拟地址对应的物理内存页面号（pfn）及对应该物理页面的页面描述符。内存的逆向映射是指从物理页面描述符反向映射回虚拟地址。页表是单向映射表，即使一个物理页只映射到一个虚拟内存页，也无法通过物理页面描述符直接得到映射到该物理内存页的虚拟地址或对应该物理页面的页表项，况且一页物理内存可能映射到多页虚拟内存。这样的逆向映射在把内存的内容交换到交换分区或释放页面时一定会用到。</p>
+<p>在版本2.4之前，Linx遍历每个进程的所有页表，从而找到所有映射到指定物理内存的页表，这项工作非常费时。为了解决逆向映射问题，Rik
+Van
+Riel首先提出逆向映射的概念，并提出通过增加数据结构实现逆向映射的方法。但Rik的方法并不理想，成本过高。为此，Dave
+mcCracken提出了基于对象的逆映射。这种方法只适应于文件备份内存的逆向映射，mmap系统调用即采用这种方法。当映射为文件备份内存映射时，Dave通过把页面描述符（struct
+page）的mapping指向地址空间实现逆向映射。当映射为匿名内存映射时，结构体page的mapping字段为空。为了解决匿名内存的逆向映射问题，Andrea
+Arcaneli通过把mapping字段指向vma实现逆向映射。但事情并没有如此简单，当出现进程派生时，一个vma可能对应多个页表，同样，由于内存共享，一个物理地址就能对应多个虚拟地址，因此不能够简单的采用把mapping字段指向vma的方法实现匿名内存的逆向映射。为了解决这一问题，Andrea定义了av结构体和avc结构体。每个进程通过avc结构体把进程自己的av和vma关联起来，通过anon_vma_chain链表同时罗列了进程继承自父进程的共享匿名页以及自身专属的匿名页。详细情况我们在介绍av及avc结构体时已作了详细介绍。</p>
+<h3 id="匿名内存到虚拟内存的逆向映射"><a class="header" href="#匿名内存到虚拟内存的逆向映射">匿名内存到虚拟内存的逆向映射</a></h3>
+<p>在进行匿名内存映射是，物理页面描述符的mapping字段指向对应的av结构体。在进行逆向映射时，系统通过mapping指针找到对应的av，然后通过av的rb_root字段，找到以rb_roo为根节点的红黑二叉树。遍历该二叉树的各个avc值，就可以找到物理地址描述符page映射的所有vma，从而就可以找到物理地址映射的所有虚拟内存页。通过page结构体的index字段，可以确定虚拟地址在vma所覆盖的虚拟地址空间的偏移量。各个结构体及二叉树之间的关系示于图15‑24。</p>
+<center>
+<figure>
+<img src="./media/image155.png" style="width:auto;height:auto" />
+<figcaption>
+<p> 图 15‑24匿名内存逆向映射查询示意图</p>
+</figcaption>
+</figure>
+</center>
+<h3 id="文件到内存的逆向映射"><a class="header" href="#文件到内存的逆向映射">文件到内存的逆向映射</a></h3>
+<p>前面我们提到，Dave通过把物理地址描述符的mapping字段的值指向地址空间实现文件备份内存的逆向映射。系统利用物理页面描述符的mapping字段，找到对应的地址空间结构体，通过地址空间结构体的i_mmap指针，找到由所有vma组成的红黑区间二叉树，然后遍历二叉树上的各个vma，就可以找到物理页面映射的vma，利用vma的vm_file字段可以找到对应的文件。图
+15‑25显示文件备份内存的逆向映射过程。</p>
+<center>
+<figure>
+<img src="./media/image156.png" />
+<figcaption>
+<p>图 15‑25文件备份内存的逆向映射</p>
+</figcaption>
+</figure>
+</center>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="红黑树.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="内存迁移.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="红黑树.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="内存迁移.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

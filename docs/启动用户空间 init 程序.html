@@ -1,0 +1,1108 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>启动用户空间init程序 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="启动用户空间-init-程序"><a class="header" href="#启动用户空间-init-程序">启动用户空间 init 程序</a></h2>
+<p>用户空间的 init 程序 是 Linux 系统启动后的第一个用户态进程，其 PID
+始终为
+1。它是所有其他用户进程的祖先，由内核在完成初始化（执行完之前看到的
+do_sysctl_args 等逻辑）后直接启动，内核会默认在路径 /sbin/init
+寻找并运行它。用户态init进程启动的服务主要包括：</p>
+<p>1.基础核心服务</p>
+<p>在所有其他服务启动之前，init
+必须先建立最基础的系统运行环境，服务程序有：</p>
+<ul>
+<li>udevd / systemd-udevd</li>
+</ul>
+<blockquote>
+<p>设备管理器。负责动态识别硬件变化、加载驱动并创建 /dev 下的设备节点。</p>
+</blockquote>
+<ul>
+<li>systemd-journald / syslogd / rsyslog</li>
+</ul>
+<blockquote>
+<p>日志系统。负责捕获内核和所有用户态进程的日志输出。</p>
+</blockquote>
+<ul>
+<li>systemd-modules-load</li>
+</ul>
+<blockquote>
+<p>内核模块加载服务。根据配置文件自动加载所需的内核驱动。</p>
+</blockquote>
+<p>2.存储与文件系统服务</p>
+<p>负责管理硬盘分区、挂载以及检查文件系统健康状态，服务程序有：</p>
+<ul>
+<li>systemd-remount-fs</li>
+</ul>
+<blockquote>
+<p>将根文件系统从只读（Read-Only）重新挂载为读写（Read-Write）。</p>
+</blockquote>
+<ul>
+<li>systemd-fsck@</li>
+</ul>
+<blockquote>
+<p>文件系统检查工具（Fsck）。在挂载前检查磁盘是否有损坏。</p>
+</blockquote>
+<ul>
+<li>local-fs.target 关联服务</li>
+</ul>
+<blockquote>
+<p>解析 /etc/fstab 文件，自动挂载本地的所有硬盘分区。</p>
+</blockquote>
+<ul>
+<li>swap.target 关联服务</li>
+</ul>
+<blockquote>
+<p>启用系统的虚拟内存（Swap 交换分区）。</p>
+</blockquote>
+<p>3.网络与底层通信服务</p>
+<p>让系统具备本地组网和联网能力。服务程序有：</p>
+<ul>
+<li>dbus (Desktop Bus)</li>
+</ul>
+<blockquote>
+<p>进程间通信守护进程。这是 Linux
+极其核心的服务，所有系统服务（如网络、电源、桌面）之间传递消息都依赖它。</p>
+</blockquote>
+<ul>
+<li>NetworkManager / systemd-networkd</li>
+</ul>
+<blockquote>
+<p>网络连接管理器。负责配置 IP 地址、DHCP 获取、Wi-Fi 连接等。</p>
+</blockquote>
+<ul>
+<li>systemd-resolved / named</li>
+</ul>
+<blockquote>
+<p>DNS 域名解析服务。</p>
+</blockquote>
+<p>4.系统管理与人机交互服务</p>
+<p>为用户登录和日常管理提供接口，服务程序有：</p>
+<ul>
+<li>agetty / getty@</li>
+</ul>
+<blockquote>
+<p>文本终端服务。它负责在屏幕上打印 login:
+提示符，让你可以通过命令行登录。</p>
+</blockquote>
+<ul>
+<li>sshd</li>
+</ul>
+<blockquote>
+<p>SSH 远程登录服务（服务器系统的核心服务）。</p>
+</blockquote>
+<ul>
+<li>cron / crond / systemd-timers</li>
+</ul>
+<blockquote>
+<p>定时任务调度器。</p>
+</blockquote>
+<ul>
+<li>显示管理器（如 gdm / sddm / lightdm）</li>
+</ul>
+<blockquote>
+<p>图形界面系统的入口。它负责显示图形登录界面，登录后唤醒 GNOME 或 KDE
+等桌面环境。</p>
+</blockquote>
+<p>5.常见应用层与第三方服务</p>
+<p>根据服务器或工作站的用途，init 拉起的具体的业务服务程序，有：</p>
+<ul>
+<li>数据库服务</li>
+</ul>
+<blockquote>
+<p>如 mysql、postgresql、redis。</p>
+</blockquote>
+<ul>
+<li>Web 服务</li>
+</ul>
+<blockquote>
+<p>如 nginx、httpd (Apache)。</p>
+</blockquote>
+<ul>
+<li>容器与虚拟化</li>
+</ul>
+<blockquote>
+<p>如 dockerd (Docker 守护进程)、libvirtd (虚拟机管理)</p>
+</blockquote>
+<p>前面我们已经介绍， kernel_init() 函数会通过init_eaccess()寻找 init
+程序，如果找不到，kernel_init()会利用prepare_namespace()把由启动命令行参数root指定的根文件系统挂接到系统，以便系统查找用户态init程序。</p>
+<p>用户态init
+程序启动系统必要的服务（如网络、日志、桌面环境），并监控它们。如果服务崩溃，init
+负责重启它。当一个父进程在子进程之前退出时，子进程会变成孤儿。内核会将这些孤儿进程的父进程重定向为
+PID 1。init 负责调用 wait() 来回收这些僵尸进程的资源。</p>
+<p>随着 Linux 的发展，用户态init 程序经历了从SysVinit (传统型)
+，再到systemd (现代标准)的演变。几乎所有主流发行版（Ubuntu 15+, CentOS
+7+, Debian 8+）现在都使用systemd。</p>
+<p>kernel_init()选择init程序（查找用户态init的程序，非用户态init）的优先级为：</p>
+<p>ramdisk_execute_command指定的init程序；</p>
+<p>execute_command指定的init程序；</p>
+<p>/sbin/init；</p>
+<p>/etc/init；</p>
+<p>/bin/init；</p>
+<p>/bin/sh。</p>
+<p>在嵌入式系统或 initramfs 中，通常使用 BusyBox 提供的简化版
+init。它非常小巧，只读取 /etc/inittab 配置文件，适合资源受限的环境。</p>
+<p>我们前面已经介绍了ramdisk_execute_command的赋值方式，execute_command由宏__setup(“init=”,
+init_setup)注册，由启动命令行参数通过init=的方式指定，由函数parse_args()在进行引导参数解析时、通过回调函数do_early_param()为其赋值。宏__setup()与宏module_param()的工作机理完全相同，由它指定的参数存在obs_kernel_params段内。</p>
+<p>init程序通过调用run_init_process()
+和try_to_run_init_process()执行，不是“再创建一个新进程”，而是让当前这个
+PID 1 自己 exec 成用户空间 init。也就是说，之前，PID 1 =
+kernel_init（内核线程），之后，PID 1 = /sbin/init 或
+systemd（用户进程）。所以，PID 没变，执行身份变了。这是 Linux
+启动流程里最关键的概念之一。</p>
+<p>函数run_init_process()位于git/init/main.c，定义为：</p>
+<pre><code>static int run_init_process(const char *init_filename)
+{
+	const char *const *p;
+	argv_init[0] = init_filename;
+	pr_info("Run %s as init process\n", init_filename);
+	pr_debug("  with arguments:\n");
+	for (p = argv_init; *p; p++)
+		pr_debug("    %s\n", *p);
+	pr_debug("  with environment:\n");
+	for (p = envp_init; *p; p++)
+		pr_debug("    %s\n", *p);
+	return kernel_execve(init_filename, argv_init, envp_init);
+}
+</code></pre>
+<p>该函数负责启动用户空间的第一个进程（即用户态 init
+进程）。它首先打印日志，然后通过函数kernel_execve()执行用户态init程序，从内核模式转换为用户模式。将要执行的文件名为命令行参数的第一个，这是
+Unix/Linux 的标准惯例。argv_init是参数列表，envp_init是环境变量列表。</p>
+<p>如果执行成功，内核将加载并运行该二进制文件，当前的内核线程将演变为用户空间的
+PID 1 进程。由于 execve
+成功后不会返回，如果该函数返回了值，通常意味着执行失败（例如文件不存在或格式错误）。</p>
+<p>它是内核完成自检和设备驱动加载后，移交控制权给操作系统的“接力棒”。如果内核尝试了所有可能的路径（如
+/sbin/init, /etc/init, /bin/init, /bin/sh）都失败了，内核将会抛出著名的
+“Kernel Panic - not syncing: No working init found.” 错误。</p>
+<p>函数try_to_run_init_process()同样位于git/init/main.c，定义为：</p>
+<pre><code>static int try_to_run_init_process(const char *init_filename)
+{
+	int ret;
+	ret = run_init_process(init_filename);
+	if (ret &amp;&amp; ret != -ENOENT) {
+		pr_err("Starting init: %s exists but couldn't execute it (error %d)\n",  init_filename, ret);
+	}
+	return ret;
+}
+</code></pre>
+<p>该函数是 run_init_process
+的安全封装层，主要负责错误处理和日志过滤。它调用run_init_process()。如果返回
+0，说明进程启动成功。如果返回
+-ENOENT，表示文件不存在。这种情况下它会保持沉默，因为内核通常会按顺序尝试多个路径（如
+/sbin/init -&gt;
+/etc/init），找不到某一个是很正常的。如果返回了其他错误，说明找到了文件但无法运行。此时它会通过
+pr_err 打印红字警告。</p>
+<p>真正执行用户态init程序的是函数kernel_execve()，位于git/fs/exec.c，定义为：</p>
+<pre><code>int kernel_execve(const char *kernel_filename, const char *const *argv, const char *const *envp)
+{
+	struct filename *filename;
+	struct linux_binprm *bprm;
+	int fd = AT_FDCWD;
+	int retval;
+	filename = getname_kernel(kernel_filename);
+	if (IS_ERR(filename))
+		return PTR_ERR(filename);
+	bprm = alloc_bprm(fd, filename);
+	if (IS_ERR(bprm)) {
+		retval = PTR_ERR(bprm);
+		goto out_ret;
+	}
+	retval = count_strings_kernel(argv);
+	if (retval &lt; 0)
+		goto out_free;
+	bprm-&gt;argc = retval;
+	retval = count_strings_kernel(envp);
+	if (retval &lt; 0)
+		goto out_free;
+	bprm-&gt;envc = retval;
+	retval = bprm_stack_limits(bprm);
+	if (retval &lt; 0)
+		goto out_free;
+	retval = copy_string_kernel(bprm-&gt;filename, bprm);
+	if (retval &lt; 0)
+		goto out_free;
+	bprm-&gt;exec = bprm-&gt;p;
+	retval = copy_strings_kernel(bprm-&gt;envc, envp, bprm);
+	if (retval &lt; 0)
+		goto out_free;
+	retval = copy_strings_kernel(bprm-&gt;argc, argv, bprm);
+	if (retval &lt; 0)
+		goto out_free;
+	retval = bprm_execve(bprm, fd, filename, 0);
+out_free:
+	free_bprm(bprm);
+out_ret:
+	putname(filename);
+	return retval;
+}
+</code></pre>
+<p>该函数是内核加载并执行可执行文件的最底层实现。它将init
+文件路径、参数和环境变量，真正转化为一个可以运行的进程。其核心逻辑可以概括为以下四个阶段：</p>
+<ul>
+<li>通过函数getname_kernel() 将内核空间的字符串路径转换为内核理解的
+filename 结构体</li>
+</ul>
+<blockquote>
+<p>利用alloc_bprm()分配一个 linux_binprm
+结构体，它记录了程序运行所需的所有核心信息（如文件句柄、参数数量、内存页等）。</p>
+</blockquote>
+<ul>
+<li>利用函数count_strings_kernel() 分别计算命令行参数 (argv) 和环境变量
+(envp) 的个数，并存入 bprm-&gt;argc 和 bprm-&gt;envc</li>
+</ul>
+<blockquote>
+<p>通过函数bprm_stack_limits() 确保这些参数不会超过内核允许的栈限制。</p>
+</blockquote>
+<ul>
+<li>利用函数copy_strings_kernel()将文件名、命令行参数及环境变量等字符串从内核空间拷贝到
+bprm 维护的临时存储区域中，以便后续映射到新进程的用户态栈空间。</li>
+</ul>
+<blockquote>
+<p>函数名中带有 _kernel 后缀表示参数目前还在内核内存中</p>
+</blockquote>
+<ul>
+<li>调用函数bprm_execve()</li>
+</ul>
+<blockquote>
+<p>bprm_execve()会调用二进制格式处理程序（例如 ELF
+处理程序），检查文件头，加载代码段和数据段，设置堆栈，并最终让 CPU
+跳转到该程序的入口点。无论成功还是失败，最后都会通过 free_bprm 和
+putname 释放之前申请的内存。</p>
+</blockquote>
+<p>bprm_execve()函数位于git/fs/exec.c， 主要完成了以下关键动作：</p>
+<ul>
+<li>调用io_uring_task_cancel()清理当前任务的所有异步 IO 活动</li>
+</ul>
+<blockquote>
+<p>防止旧的 IO 操作干扰新的进程镜像。</p>
+</blockquote>
+<ul>
+<li>调用unshare_files()确保当前进程的文件描述符表是私有的</li>
+</ul>
+<blockquote>
+<p>这是为了处理 CLOEXEC（执行时关闭）标志，防止文件描述符泄露给新程序。</p>
+</blockquote>
+<ul>
+<li>
+<p>调用prepare_bprm_creds() 和
+security_bprm_creds_for_exec()计算新进程的权限（比如设置了 SUID
+位的可执行文件）</p>
+</li>
+<li>
+<p>调用check_unsafe_exec()进行安全扫描调用</p>
+</li>
+</ul>
+<blockquote>
+<p>检查当前进程是否处于“不安全”的状态。检查是否有其他线程正在共享该进程的地址空间，是否开启了某些调试跟踪。这是内核的自我保护机制，防止恶意代码通过
+execve 劫持提权后的进程。</p>
+</blockquote>
+<ul>
+<li>调用函数do_open_execat()打开执行文件</li>
+</ul>
+<blockquote>
+<p>在文件系统中找到 init
+文件（或任何可执行文件）并打开它，同时检查文件是否具有可执行权限。</p>
+</blockquote>
+<ul>
+<li>
+<p>调用sched_exec()调度当前任务</p>
+</li>
+<li>
+<p>标记路径不可达（BINPRM_FLAGS_PATH_INACCESSIBLE）</p>
+</li>
+</ul>
+<blockquote>
+<p>防止敏感信息泄露。如果一个文件描述符设置了执行时关闭（O_CLOEXEC），那么在
+exec 成功后，新程序将无法通过该描述符找回原始文件的路径信息。</p>
+</blockquote>
+<ul>
+<li>调用security_bprm_creds_for_exec()</li>
+</ul>
+<blockquote>
+<p>通过LSM钩子判断是否有权执行该文件。</p>
+</blockquote>
+<ul>
+<li>调用exec_binprm()加载与执行</li>
+</ul>
+<blockquote>
+<p>如果exec_binprm() 运行成功，则清理 exec 过程的遗留状态，处理
+Restartable Sequences（rseq） 状态，更新进程的 资源统计信息，清理 NUMA
+相关状态，清理 exec 过程中遗留的文件表资源（释放旧的
+files_struct）。rseq 是一种用户态优化机制（用于 lock-free per-CPU
+操作）。</p>
+<p>如果程序运行失败，恢复原来的 files_struct。如果到了 “破釜沉舟点”
+(point_of_no_return)
+之后却发生了错误，内核已经无法恢复原进程了，只能通过 force_sigsegv
+强行杀死当前进程。只有当旧进程镜像已经被破坏但还没启动新镜像时，才会设置
+bprm-&gt;point_of_no_return。</p>
+</blockquote>
+<p>函数exec_binprm()执行用户态init程序加载。它调用
+search_binary_handler检查文件格式，遍历内核注册的格式处理器，看看谁能处理这个
+init 文件。如果是常见的二进制文件，load_elf_binary
+处理器就会接手。内核支持多种二进制格式（如 ELF、脚本/Shebang、甚至传统的
+a.out）。</p>
+<p>exec_binprm()位于git/fs/exec.c，主要工作包括：</p>
+<ul>
+<li>通过一个 for 循环调用 search_binary_handler</li>
+</ul>
+<blockquote>
+<p>在所有已注册的 binary format（ELF / 脚本 /
+misc）中，找到一个能识别并加载当前程序的 handler</p>
+</blockquote>
+<ul>
+<li>在 execve 开始时，内核会通过 deny_write_access 锁定二进制文件</li>
+</ul>
+<blockquote>
+<p>防止运行过程中文件被修改。当完成这一层加载（例如脚本解析完）切换到解释器时，利用函数allow_write_access(exec)释放对旧文件的写入锁定。</p>
+</blockquote>
+<ul>
+<li>
+<p>利用函数audit_bprm()将当前正在执行的进程及其相关参数记录到操作系统的审计（Audit）日志中</p>
+</li>
+<li>
+<p>利用函数trace_sched_process_exec()触发调度器追踪点</p>
+</li>
+<li>
+<p>利用函数ptrace_event()发送 PTRACE_EVENT_EXEC 停止信号，让调试器介入</p>
+</li>
+<li>
+<p>利用函数proc_exec_connector()向进程连接器（Process
+Connector）发送通知，通常用于监控工具</p>
+</li>
+</ul>
+<p>函数search_binary_handler()是用户态init程序的加载与执行者，位于git/fs/exec.c，其主要功能包括：</p>
+<ul>
+<li>利用prepare_binprm()读取文件前面的魔术字（magic number），填充
+bprm-&gt;buf。</li>
+</ul>
+<blockquote>
+<p>魔术字用来识别文件格式，如ELF的莫数字为0x7f ‘E’ ‘L’
+‘F’，脚本的魔术字为#!。</p>
+</blockquote>
+<ul>
+<li>
+<p>利用函数security_bprm_check ()进行LSM 安全检查</p>
+</li>
+<li>
+<p>利用宏list_for_each_entry()遍历formats链表</p>
+</li>
+</ul>
+<blockquote>
+<p>formats链表存放所有注册的格式解释器（handler）。</p>
+</blockquote>
+<ul>
+<li>首先通过函数try_module_get()尝试给它增加引用计数，防止它被卸载</li>
+</ul>
+<blockquote>
+<p>如果这个 binary handler 所在模块正在卸载，就不要用它。</p>
+</blockquote>
+<ul>
+<li>利用函数load_binary()尝试每个解释器。</li>
+</ul>
+<blockquote>
+<p>如果处理器成功执行，则该处理器会销毁旧进程地址空间（flush_old_exec），建立新的
+mm（代码段 / 数据段 / 栈），设置入口地址（entry
+point），构造用户栈（argv/envp），切换寄存器（IP /
+SP），并返回值0，表示成功执行。到这里，由于IP/SP的内容已发生变化，所以这里的返回不会真正返回，而是用户态上下文下的返回，即进入用户态。</p>
+<p>如果返回值为 -ENOEXEC，则尝试下一个解释器；</p>
+<p>如果返回值不是-ENOEXEC，或进入“不可回头点”（bprm-&gt;point_of_no_return），则直接返回错误代码。</p>
+</blockquote>
+<ul>
+<li>如果所有解释器都不认识，返回-ENOENT (初始值)</li>
+</ul>
+<p>load_binary()是真正“把当前进程变成新程序”的执行者。load_binary是一个函数指针，不同格式的init程序，load_binary指向不同的函数。下面所列的是不同格式所用的函数。</p>
+<pre><code class="language-text">格式		对应函数
+
+ELF		load_elf_binary()
+
+#!		load_script()
+
+misc		load_misc_binary()
+
+FDPIC		binfmt_elf_fdpic
+</code></pre>
+<p>为了让大家对linux从内核态向用户态切换过程有耿深入的了解，我们以elf格式为例介绍elf解释器的工作过程。函数load_elf_binary()位于git/fs/binfmt_elf.c，函数很长，这里不再列出其定义。</p>
+<p>load_elf_binary()主要完成的任务包括：</p>
+<ul>
+<li>
+<p>魔术数检查（是不是 ELF）</p>
+</li>
+<li>
+<p>类型检查（ET_EXEC / ET_DYN）</p>
+</li>
+<li>
+<p>架构匹配（x86 / arm 等）</p>
+</li>
+<li>
+<p>判断这个 ELF 是不是 FDPIC ELF（Flexible Dynamic Position Independent
+Code，一种特殊 ELF 格式）</p>
+</li>
+<li>
+<p>检查文件是否支持 mmap。如果不支持 mmap ，无法把 ELF 映射进内存。不能
+mmap 的文件，不可能作为可执行程序加载</p>
+</li>
+<li>
+<p>利用函数load_elf_phdrs()从文件中读取 程序头表格（Program Header
+Table）</p>
+</li>
+<li>
+<p>用for循环遍历ELF段，找PT_INTERP：</p>
+</li>
+</ul>
+<!-- -->
+<ul>
+<li>
+<p>通过函数elf_read()读出解释器路径（比如/lib64/ld-linux-x86-64.so.2\0）</p>
+</li>
+<li>
+<p>通过函数open_exec()把解释器文件打开</p>
+</li>
+<li>
+<p>调用would_dump()进行安全处理。如果原程序不可读，则禁止 core
+dump（mm-&gt;dumpable = 0）</p>
+</li>
+<li>
+<p>通过函数elf_read()读取解释器 ELF 头</p>
+</li>
+</ul>
+<blockquote>
+<p>如果执行到for循环里的break语句，表明已找到解释器ld.so。</p>
+</blockquote>
+<ul>
+<li>
+<p>下一个for循环用于从 ELF 的 Program Header 里提取运行时策略（栈权限 +
+架构特性），为后面建地址空间做准备</p>
+</li>
+<li>
+<p>利用if (interpreter)块内的代码进行基础合法性检查：</p>
+</li>
+</ul>
+<!-- -->
+<ul>
+<li>
+<p>检查解释器文件开头是否为 \x7fELF，确保文件格式为ELF</p>
+</li>
+<li>
+<p>检查主程序和解释器架构一致，检查解释器的架构（如 x86_64,
+ARM）是否与当前运行的内核及主程序匹配</p>
+</li>
+<li>
+<p>确认ELF格式不是 FDPIC，确保解释器不包含不支持的 FDPIC（通常用于无 MMU
+的系统）特性</p>
+</li>
+<li>
+<p>加载解释器的程序头，这些表描述了文件应该如何映射到内存中（如代码段、数据段）</p>
+</li>
+<li>
+<p>记录解释器的属性段和架构私有段</p>
+</li>
+<li>
+<p>处理处理器特定段 (PT_LOPROC … PT_HIPROC)</p>
+</li>
+<li>
+<p>遍历解释器的所有程序头，标记该程序头的位置。它包含了 GNU
+扩展属性（PT_GNU_PROPERTY ）</p>
+</li>
+<li>
+<p>调用 arch_elf_pt_proc()，处理特定于特定处理器的段（PT_LOPROC …
+PT_HIPROC）</p>
+</li>
+</ul>
+<!-- -->
+<ul>
+<li>调用parse_elf_properties()</li>
+</ul>
+<blockquote>
+<p>扫描 ELF 文件的程序头，查找特定的 PT_GNU_PROPERTY 段，解析 ELF
+属性。它会根据是加载解释器（如
+ld-linux.so）还是主程序来提取相关状态，并存入 arch_state
+结构体中。这些属性通常包含处理器特有的特性需求；</p>
+</blockquote>
+<ul>
+<li>调用arch_check_elf()进行架构特定检查</li>
+</ul>
+<blockquote>
+<p>调用具体 CPU 架构实现的钩子函数，对 ELF
+文件进行最后的“否决”，确保主程序和动态链接器（解释器）的特性是兼容的。如果硬件强制要求某些特性，而
+ELF 文件未声明支持，内核将在此处拒绝执行该程序；</p>
+</blockquote>
+<ul>
+<li>调用函数begin_new_exec()初始环境设置，释放旧进程资源，进入“不归路”</li>
+</ul>
+<blockquote>
+<p>它是 Linux 内核中 execve
+系统调用的核心转折点。一旦进入这个函数并执行到一定阶段，原先的进程上下文（内存、线程、信号等）就会被彻底摧毁。如果此后发生错误，内核无法再返回到用户态报错，只能通过发送致命信号（如
+SIGSEGV）直接终止进程，其工作主要包括：</p>
+</blockquote>
+<ul>
+<li>
+<p>利用bprm_creds_from_file()，根据文件属性（如 SUID/SGID
+位）计算新进程的凭据，将进程标记为不可逆 (point_of_no_return =
+true)，正式宣布进入无法回滚的状态</p>
+</li>
+<li>
+<p>利用函数de_thread()杀死当前线程组中的所有其他线程。exec
+后的进程必须是单线程的</p>
+</li>
+<li>
+<p>利用函数set_mm_exe_file()绑定可执行文件到 mm</p>
+</li>
+<li>
+<p>利用函数would_dump()设置 dump 策略</p>
+</li>
+<li>
+<p>利用函数exec_mmap()销毁原进程的虚拟内存空间（代码段、数据段、堆栈），创建一个全新的地址空间，将准备好的新内存布局（bprm-&gt;mm）激活</p>
+</li>
+<li>
+<p>利用函数exit_itimers()关闭所有 POSIX 定时器</p>
+</li>
+<li>
+<p>利用函数unshare_sighand()将信号处理器私有化</p>
+</li>
+<li>
+<p>利用函数force_uaccess_begin()允许访问用户空间</p>
+</li>
+<li>
+<p>清理旧进程遗留标志</p>
+</li>
+<li>
+<p>利用函数flush_thread()</p>
+</li>
+<li>
+<p>利用函数do_close_on_exec()关闭所有设置了O_CLOEXEC 标志的文件描述符</p>
+</li>
+<li>
+<p>如果设置安全运行（bprm-&gt;secureexec），禁止父进程信号，重置栈限制（防攻击）</p>
+</li>
+<li>
+<p>利用函数set_dumpable()设置是否允许 core dump</p>
+</li>
+<li>
+<p>利用函数perf_event_exec()perf 切换统计</p>
+</li>
+<li>
+<p>利用函数__set_task_comm()更新进程名（ps 能看到）</p>
+</li>
+<li>
+<p>更新exec 关键标志（current-&gt;self_exec_id）</p>
+</li>
+<li>
+<p>利用函数flush_signal_handlers()重置所有信号处理函数为默认行为（除了被忽略的信号）</p>
+</li>
+<li>
+<p>利用函数commit_creds()提交凭证</p>
+</li>
+<li>
+<p>利用函数perf_event_exit_task()调整perf 权限</p>
+</li>
+<li>
+<p>利用函数security_bprm_committed_creds()进行LSM收尾</p>
+</li>
+<li>
+<p>如果设置了bprm-&gt;have_execfd ，把 executable 变成一个 fd，将
+已打开的文件对象 正式“激活”到新进程（如 ld.so）文件描述符表中</p>
+</li>
+</ul>
+<blockquote>
+<p>它处理的是一种由内核直接传递文件描述符给解释器的特殊执行场景（如当脚本第一行是
+#! /usr/bin/python3）。</p>
+</blockquote>
+<ul>
+<li>调用函数elf_read_implies_exec()确定这个 ELF 是否需要
+将读权限转换为执行权限</li>
+</ul>
+<blockquote>
+<p>如果需要，以后 mmap 出来的内存，只要是可读的，就自动也变成可执行的。</p>
+</blockquote>
+<ul>
+<li>检查当前进程是否需要开启 PF_RANDOMIZE</li>
+</ul>
+<blockquote>
+<p>这会影响后续堆栈和内存映射的起始地址;</p>
+</blockquote>
+<ul>
+<li>
+<p>利用函数setup_new_exec()收尾 begin_new_exec()，最终确认dumpable
+状态，初始化mm 细节</p>
+</li>
+<li>
+<p>调用函数setup_arg_pages()在内存中建立初始堆栈，并将命令行参数（argv）和环境变量（envp）拷贝进去</p>
+</li>
+<li>
+<p>遍历 ELF 文件遍历 Program Header的 PT_LOAD 段（即需要映射到内存的段）</p>
+</li>
+</ul>
+<blockquote>
+<p>处理
+bss段，如果两个加载段之间有空隙，表示文件没存但内存要补0，内核会调用
+set_brk() 建立匿名映射，并调用 clear_user() 将其清零；</p>
+</blockquote>
+<ul>
+<li>
+<p>利用函数make_prot()确定文件权限</p>
+</li>
+<li>
+<p>设置地址映射方式（elf_flags）、映射地址（vaddr）、地址偏移（load_bias）及内存区间大小（total_size）</p>
+</li>
+<li>
+<p>利用函数elf_map()映射ELF段</p>
+</li>
+</ul>
+<blockquote>
+<p>调用 mmap() 把 ELF
+文件映射进内存，并设置权限（elf_prot），如代码段设为 R+X，数据段设为
+R+W；</p>
+</blockquote>
+<ul>
+<li>
+<p>计算CPU 要跳转的虚拟地址e_entry</p>
+</li>
+<li>
+<p>不断更新 start_code、end_code、start_data、end_data
+等，记录程序的代码和数据范围</p>
+</li>
+</ul>
+<blockquote>
+<p>用于/proc/pid/maps，供内存管理使用；</p>
+</blockquote>
+<ul>
+<li>在所有文件段加载完后，利用函数set_brk（）为 BSS
+段（未初始化全局变量）和初始堆空间分配内存</li>
+</ul>
+<blockquote>
+<p>如果最后一个数据页没有填满，利用padzero()将剩余部分清零，防止数据泄露；</p>
+</blockquote>
+<ul>
+<li>
+<p>如果程序需要动态链接（解释器interpreter不为空），调用 load_elf_interp
+加载
+ld-linux.so；记录解释器(ld.so)的加载基址（用于后续架构/重定位），并释放对解释器文件的“写保护占用”</p>
+</li>
+<li>
+<p>设置入口点 (elf_entry)</p>
+</li>
+</ul>
+<blockquote>
+<p>如果有解释器，进程的起始执行点设为解释器的入口。如果没有解释器（静态链接），则设为程序本身的入口（e_entry）；</p>
+</blockquote>
+<ul>
+<li>
+<p>利用函数set_binfmt()把当前进程标记为由 ELF 二进制格式管理</p>
+</li>
+<li>
+<p>利用函数arch_setup_additional_pages()加载 vDSO</p>
+</li>
+</ul>
+<blockquote>
+<p>ARCH_HAS_SETUP_ADDITIONAL_PAGES启用时。</p>
+</blockquote>
+<ul>
+<li>利用函数create_elf_tables()在堆栈上压入 argc、argv、envp 以及 辅助向量
+(Auxiliary Vector)</li>
+</ul>
+<blockquote>
+<p>辅助向量告诉程序入口地址，程序头位置，以及是否启用硬件加速功能；</p>
+</blockquote>
+<ul>
+<li>
+<p>将计算好的代码段、数据段、堆栈起始地址正式写入进程的内存管理结构体
+mm_struct</p>
+</li>
+<li>
+<p>利用函数arch_randomize_brk()对堆（brk）的起始地址进行最后的随机化偏移</p>
+</li>
+</ul>
+<blockquote>
+<p>进一步增强安全性。</p>
+</blockquote>
+<ul>
+<li>如果定义了MMAP_PAGE_ZERO，利用vm_mmap()把虚拟地址 0
+这一页映射出来（只读 + 可执行）</li>
+</ul>
+<blockquote>
+<p>用以兼容老程序。</p>
+</blockquote>
+<ul>
+<li>利用函数current_pt_regs()获取当前任务返回用户态时要用的寄存器结构，包括指令地址、栈指针、返回值、参数等</li>
+</ul>
+<blockquote>
+<p>用于伪造一个用户态寄存器现场。</p>
+</blockquote>
+<ul>
+<li>
+<p>如果启用了ELF_PLAT_INIT，按照当前 CPU/ABI
+的规则，把用户态启动所需的寄存器补齐/修正好</p>
+</li>
+<li>
+<p>利用函数finalize_exec()清理 bprm 相关状态、确认
+exec状态切换已完成、进行安全模块收尾、以及清理 exec 相关锁 / 标志</p>
+</li>
+<li>
+<p>利用函数start_thread()构造返回用户态时的寄存器现场</p>
+</li>
+</ul>
+<blockquote>
+<p>设置 PC =
+elf_entry（程序入口，如果是动态链接，entry等于ld.so的入口）， SP =
+bmpr-&gt;p，即用输入参数修改当前返回时使用的栈的内容（regs指向当前进程的栈）；</p>
+<p>由于PC已指向用户态程序的入口地址，SP指向了用户栈，load_elf_binary()返回时不再沿着原调用路径，而是进入用户态开始执行用户态init函数（例如systemd）</p>
+</blockquote>
+<p>systemd（pid 1）的启动过程可用图 30‑2表示。</p>
+<center>
+<figure>
+<img src="./media/image185.jpg" style="width:1.46625in;height:4.76774in" />
+<figcaption>
+<p>图 30‑3从内核态进入用户态</p>
+</figcaption>
+</figure>
+</center>
+<p>load_elf_binary()的整体流程为：</p>
+<blockquote>
+<p>① 校验 ELF</p>
+<p>② 解析 Program Header（含解释器）</p>
+<p>③ 架构 &amp; 安全检查</p>
+<p>④ begin_new_exec（不可回头点）</p>
+<p>⑤ 建立新地址空间（mm + 栈）</p>
+<p>⑥ mmap 各个段（PT_LOAD）</p>
+<p>⑦ 处理 bss / brk</p>
+<p>⑧ 加载动态链接器（如果有）</p>
+<p>⑨ 构造用户栈（argv/envp/auxv）</p>
+<p>⑩ 设置寄存器（start_thread，入口不是systemd程序本身，而是 ld.so）</p>
+<p>⑪ 返回 0</p>
+</blockquote>
+<p>kernel_init()进入用户态systemd的完整流程可用图 30‑3表示。</p>
+<center>
+<figure>
+<img src="./media/image188.jpg" style="width:3.7055741469816272in;height:7.402985564304462in" />
+<figcaption>
+<p>图 30‑4 kernel_init进入systemd的完整流程</p>
+</figcaption>
+</figure>
+</center>
+<p>start_thread()是依赖架构的宏。arm32的start_thread()定义在git/arch/arm/include/asm/processor.h，其定义为：</p>
+<pre><code>#define start_thread(regs,pc,sp)							\
+({											\
+	unsigned long r7, r8, r9;								\
+												\
+	if (IS_ENABLED(CONFIG_BINFMT_ELF_FDPIC)) {			\
+		r7 = regs-&gt;ARM_r7;							\
+		r8 = regs-&gt;ARM_r8;							\
+		r9 = regs-&gt;ARM_r9;							\
+	}											\
+	memset(regs-&gt;uregs, 0, sizeof(regs-&gt;uregs));				\
+	if (IS_ENABLED(CONFIG_BINFMT_ELF_FDPIC) &amp;&amp;		\
+	    current-&gt;personality &amp; FDPIC_FUNCPTRS) {				\
+		regs-&gt;ARM_r7 = r7;							\
+		regs-&gt;ARM_r8 = r8;							\
+		regs-&gt;ARM_r9 = r9;							\
+		regs-&gt;ARM_r10 = current-&gt;mm-&gt;start_data;			\
+	} else if (!IS_ENABLED(CONFIG_MMU))					\
+		regs-&gt;ARM_r10 = current-&gt;mm-&gt;start_data;			\
+	if (current-&gt;personality &amp; ADDR_LIMIT_32BIT)				\
+		regs-&gt;ARM_cpsr = USR_MODE;					\
+	else											\
+		regs-&gt;ARM_cpsr = USR26_MODE;					\
+	if (elf_hwcap &amp; HWCAP_THUMB &amp;&amp; pc &amp; 1)				\
+		regs-&gt;ARM_cpsr |= PSR_T_BIT;					\
+	regs-&gt;ARM_cpsr |= PSR_ENDSTATE;					\
+	regs-&gt;ARM_pc = pc &amp; ~1;		/* pc */				\
+	regs-&gt;ARM_sp = sp;		/* sp */					\
+})
+</code></pre>
+<p>该函数最关键的是regs-&gt;ARM_pc = pc &amp; ~1和regs-&gt;ARM_sp =
+sp这两行。它们实际上是修改了函数返回地址及返回后的栈地址，正是这两句改变了程序的流向。</p>
+<p>到此为止，我们完整地介绍了PID1从内核态切换到用户态的过程。为了给大家一个完整的印象，我们在图
+30‑4给出了1号线程kernel_init()的完整调用链。</p>
+<center>
+<figure>
+<img src="./media/image188.jpg" style="width:2.70875in;height:5.41153in" />
+<figcaption>
+<p>图 30‑5 Kernel_init()完整调用链</p>
+</figcaption>
+</figure>
+</center>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="标记系统正式进入运行状态.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="阻止编译器优化.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="标记系统正式进入运行状态.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="阻止编译器优化.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
