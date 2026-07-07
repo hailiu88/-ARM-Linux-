@@ -1,0 +1,687 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>外设及子系统初始化 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="外设及子系统初始化"><a class="header" href="#外设及子系统初始化">外设及子系统初始化</a></h2>
+<p>do_initcalls()函数执行位于__initcall0_start和__initcall_end所有的初始化任务，包括核心子系统初始化、架构有关的某些初始化、外设初始化及驱动程序调用、文件系统初始化等一系列重要任务。函数位于git/init/main.c，其定义为：</p>
+<pre><code>static void __init do_initcalls(void)
+{
+	int level;
+	size_t len = strlen(saved_command_line) + 1;
+	char *command_line;
+	command_line = kzalloc(len, GFP_KERNEL);
+	if (!command_line)
+		panic("%s: Failed to allocate %zu bytes\n", __func__, len);
+	for (level = 0; level &lt; ARRAY_SIZE(initcall_levels) - 1; level++) {
+		strcpy(command_line, saved_command_line);
+		do_initcall_level(level, command_line);
+	}
+	kfree(command_line);
+}
+</code></pre>
+<p>该函数从level0开始，通过循环调用do_initcall_level()逐级执行函数地址位于相应级别段内的各个初始化函数。在执行每一级的初始化函数之前，先把保存在saved_command_line内的命令行参数复制到command_line。很多内核子系统和驱动程序允许通过启动参数进行配置。在
+do_initcall_level 执行过程中，内核会解析命令行，提取属于当前 Level
+中那些模块的参数。内核的解析函数（如
+parse_args）通常会直接修改传入的字符串（例如把空格替换成 \0
+以便拆分字符串）。因为字符串会被修改，所以在进入下一个 Level之前，必须用
+strcpy 把原始的 saved_command_line
+重新覆盖回去，确保下一层的模块看到的也是完整的参数。</p>
+<p>函数do_initcall_level()位于git/init/main.c，其定义为：</p>
+<pre><code>static void __init do_initcall_level(int level, char *command_line)
+{
+	initcall_entry_t *fn;
+	parse_args(initcall_level_names[level],  command_line, __start___param,
+	   __stop___param - __start___param,  level, level, NULL, ignore_unknown_bootoption);
+	trace_initcall_level(initcall_level_names[level]);
+	for (fn = initcall_levels[level]; fn &lt; initcall_levels[level+1]; fn++)
+		do_one_initcall(initcall_from_entry(fn));
+} 
+</code></pre>
+<p>在执行每一级初始化之前，函数先调用
+parse_args定向解析参数，其中initcall_level_names[level]
+包含当前正在初始化的级别名称（操作名称或子系统名称），方便定位是哪个模块在解析参数。其定义为：</p>
+<pre><code>static const char *initcall_level_names[] __initdata = {
+	"pure",
+	"core",
+	"postcore",
+	"arch",
+	"subsys",
+	"fs",
+	"device",
+	"late",
+};
+</code></pre>
+<p>command_line包含待解析的原始命令行参数字符串（如 console=ttyS0
+quiet）。该函数会原地修改这个字符串，用 \0 替换空格或等号来拆分键值对。</p>
+<p>__start___param 和 __stop___param 是由
+链接器自动生成的两个符号，它们定义了内核镜像中存放所有内核参数描述符的内存区域边界。在内核源码中，当使用
+module_param()、core_param() 或 early_param()
+等宏定义一个参数时，编译器会利用
+__attribute__((section(“__param”)))
+属性，把这些参数的元数据统一放进位于__start___param 和
+__stop___param的段中。</p>
+<p>__stop___param - __start___param 为params
+数组中元素的个数。level用于参数解析的层级过滤，parse_args
+只会解析当前层级的参数。这确保了在特定的初始化阶段，只有该阶段感兴趣的参数会被处理。ignore_unknown_bootoption为回调函数，从函数名可以看出，parse_args()忽略未知参数。</p>
+<p>通过parse_args()，do_initcall_level()专门去查找那些属于当前层级的内核参数（即通过
+module_param 或 __setup 定义的参数）。通过传入
+command_line，它能确保用户在启动时输入的配置（如
+console=ttyS0）被应用到即将启动的子系统上。</p>
+<p>通过for 循环，do_initcall_level()从当前层级的起始地址遍历到下一个 level
+的起始地址，保证遍历到包含在当前层级的所有初始化函数。</p>
+<p>initcall_levels[level]
+是一个指针数组，每个单元指向__initcall_start和__initcall_end中的一个位置，该位置所在的内存保存某一级第一个初始化函数的地址。数组定义位于git/init/main.c，为：</p>
+<pre><code>static initcall_entry_t *initcall_levels[] __initdata = {
+	__initcall0_start,
+	__initcall1_start,
+	__initcall2_start,
+	__initcall3_start,
+	__initcall4_start,
+	__initcall5_start,
+	__initcall6_start,
+	__initcall7_start,
+	__initcall_end,
+};
+</code></pre>
+<p>循环体内的do_one_initcall函数正式执行初始化函数。这是真正执行初始化的地方。它会调用
+fn 指向的函数。</p>
+<p>利用trace_initcall_level()，do_initcall_level()还允许内核调试工具（如
+ftrace 或
+bootgraph.pl）记录每一层初始化的开始时间，从而生成直观的启动耗时图。</p>
+<p>在知道函数如何遍历每一级的初始化函数后，下面介绍如何执行每一个初始化函数，即do_one_initcall()是如何工作的。</p>
+<p>do_one_initcall()函数位于git/init/main.c，其定义为：</p>
+<pre><code>int __init_or_module do_one_initcall(initcall_t fn)
+{
+	int count = preempt_count();
+	char msgbuf[64];
+	int ret;
+	if (initcall_blacklisted(fn))
+		return -EPERM;
+	do_trace_initcall_start(fn);
+	ret = fn();
+	do_trace_initcall_finish(fn, ret);
+	msgbuf[0] = 0;
+	if (preempt_count() != count) {
+		sprintf(msgbuf, "preemption imbalance ");
+		preempt_count_set(count);
+	}
+	if (irqs_disabled()) {
+		strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
+		local_irq_enable();
+	}
+	WARN(msgbuf[0], "initcall %pS returned with %s\n", fn, msgbuf);
+	add_latent_entropy();
+	return ret;
+}
+</code></pre>
+<p>在执行前，先检查该函数是否在用户的“黑名单”中（通过启动参数
+initcall_blacklist=
+指定），这在调试导致系统崩溃的驱动时非常有用。如果不在黑名单上，则启动初始化函数跟踪，调用初始化函数进行初始化，最后关闭初始化函数跟踪，从而可以获得初始化占用时间。</p>
+<p>内核记录执行前的抢占计数值。如果函数执行完后 preempt_count
+变了（比如调用了 preempt_disable 却忘了
+enable），内核会强行重置它并报错。否则，系统可能会出现永久无法抢占的情况，导致死机。</p>
+<p>如果一个初始化函数执行完后关闭了 CPU 中断且没打开，内核会强制调用
+local_irq_enable()
+重新开启，并发出警告。如果中断一直关闭，内核将无法响应时钟和外设，系统会直接卡死。</p>
+<p>每执行完一个初始化函数，函数都会调用add_latent_entropy()，利用该函数的执行时间、随机性等信息为系统的熵池贡献一点不确定性，帮助生成更随机的随机数。</p>
+<p>do_basic_setup()
+是内核从“初始化自身”到“初始化世界”的分水岭。它执行完后，内核就已经准备好去寻找磁盘上的
+/sbin/init 并把控制权交给用户了。</p>
+<p>执行完一序列初始化函数后，
+kernel_init_freeable()开始运行kunit_run_all_tests()，测试内核单元的所有测试用例。测试框架（KUnit
+）是 Linux 内核专用的轻量级单元测试框架。受到 JUnit、Python 的 unittest
+和 GoogleTest
+的启发，内核单元测试框架允许开发者在内核空间内直接编写并运行针对内核函数（如文件系统、驱动、内存管理等）的白盒测试。</p>
+<p>测试代码作为内核的一部分运行，可以访问内核内部非公开（未通过
+EXPORT_SYMBOL 导出）的函数和符号。通过 kunit_tool 和 UML (User Mode
+Linux)，可以将内核编译为一个普通的 Linux
+可执行文件在主机上快速运行，通常几秒钟即可完成数十个测试。可以作为内建函数在内核启动时自动执行，也可以作为内核模块在加载时触发运行。测试结果以
+KTAP (Kernel Test Anything Protocol)
+格式输出，方便机器解析和自动化集成。</p>
+<p>单元测试框架基于测试套件（kunit_suite）、测试用例（kunit_case）、测试上下文对象（kunit）三个结构体。测试套件是内核单元测试框架的组织单元，代表一组具有某些共同特征的测试用例。它将一组相关的测试用例（Test
+Cases）打包在一起，并定义了它们的公共行为。测试套件包含一组测试用例、测试用例初始化函数和测试用例清理函数。测试用例定义了测试函数及其测试名称，测试用户通过它定义自己的测试函数及测试名称。测试上下文对象记录正在运行的测试，由单元测试框架自行管理，测试用户可以通过它准备私有数据及进行环境检查。下面的例子展示如何定义一个测试套件，其中my_test_case_1()为测试函数。</p>
+<pre><code>/* 1. 定义具体测试用例 */
+static void my_test_case_1(struct kunit *test) {
+    KUNIT_EXPECT_EQ(test, 1 + 1, 2); 		// 断言辅助宏，预期1+1=2
+}
+/* 2. 组装成用例数组 */
+static struct kunit_case my_test_cases[] = {
+    KUNIT_CASE(my_test_case_1),		//.run_case = my_test_case_1，.name = “my_test_case_1”
+    {} 							// 必须以空结构体结尾
+};
+/* 3. 定义测试套件 */
+static struct kunit_suite my_test_suite = {
+    .name = "my_subsystem_test_suite",
+   .test_cases = my_test_cases,
+};
+/* 4. 注册套件 */
+kunit_test_suite(my_test_suite);
+</code></pre>
+<p>kunit_run_all_tests()是 Linux
+内核内核单元测试框架中的核心初始化函数。它首先通过函数kunit_print_tap_header()打印符合
+TAP (Test Anything Protocol) 标准的首部信息。这使得自动化测试工具（如
+Python 脚本）可以轻松解析内核通过串口输出的测试结果。</p>
+<p>kunit_run_all_tests()接着遍历__kunit_suites_start 与
+__kunit_suites_end之间的测试套件，在循环体内通过函数__kunit_test_suites_init()对每一个测试套件进行测试。测试过程包括：</p>
+<ul>
+<li>通过函数kunit_init_suite()初始化（例如准备资源、设置状态）</li>
+</ul>
+<blockquote>
+<p>为测试套件创建 Debugfs 接口，在/sys/kernel/debug/kunit/
+目录下为每个套件创建一个文件夹，通过这些文件，用户可以在系统运行时查看测试结果，或者触发测试的重新运行。</p>
+</blockquote>
+<ul>
+<li>通过函数kunit_run_tests()真正开始跑这个套件里的所有测试用例，并记录结果</li>
+</ul>
+<blockquote>
+<p>主要步骤有：</p>
+</blockquote>
+<ul>
+<li>通过函数kunit_print_subtest_start向内核日志（dmesg）或控制台输出符合
+KTAP 协议的头部信息</li>
+</ul>
+<blockquote>
+<p>内容通常包含测试套件的名字和计划执行的用例数量。</p>
+</blockquote>
+<ul>
+<li>通过宏kunit_suite_for_each_test_case遍历一个测试套件里的所有测试用例</li>
+</ul>
+<blockquote>
+<p>在循环体内，通过函数kunit_run_case_catch_errors()依次触发测试套件的init()函数、测试用例的run_case函数及测试套件的exit()函数。它不是直接调用run_test测试函数，而是将其包装在一个“异常捕获”的环境中。</p>
+</blockquote>
+<ul>
+<li>打印套件的总结信息</li>
+</ul>
+<blockquote>
+<p>告知整个套件的最终结果（通过/失败）。</p>
+</blockquote>
+<p>在链接时，所有通过 kunit_test_suite()
+宏定义的测试套件指针，都会被放在__kunit_suites_start 与
+__kunit_suites_end之间的独立 ELF 段中。</p>
+<p>在测试完内核单元的所有测试用例后，kernel_init_freeable()调用console_on_rootfs()为初始化进程（PID
+1，即 init）建立标准输入、输出和错误输出（stdin, stdout,
+stderr）。console_on_rootfs()工作包括：</p>
+<ul>
+<li>通过filp_open(“/dev/console”, O_RDWR, 0)打开控制台设备</li>
+</ul>
+<blockquote>
+<p>这个设备是一个虚拟设备，它会根据内核启动参数（如
+console=ttyS0）自动指向真实的终端（串口或显示器）。</p>
+</blockquote>
+<ul>
+<li>错误处理</li>
+</ul>
+<blockquote>
+<p>如果打开失败，说明内核无法找到基础的交互设备，会打印一条警告。这通常意味着
+rootfs 里缺少必要的设备节点，或者驱动没加载。</p>
+</blockquote>
+<ul>
+<li>通过三次调用init_dup()占用由filp_open() 函数在内核内存中创建的唯一的
+struct file 实例</li>
+</ul>
+<blockquote>
+<p>第一次占用文件描述符 0 ，用于stdin，第二次占用文件描述符 1
+，用于stdout，第三次占用文件描述符 2
+用于stderr，也就是说对应/dev/console的这个struct
+file实例占用三个文件描述符。这个struct
+file实例将存在于整个内核的生命周期。</p>
+</blockquote>
+<p>在 Linux
+中，由于每个用户态进程都是PID1的后代，所有一个用户态进程默认拥有三个文件描述符：</p>
+<ul>
+<li>
+<p>0表示从 /dev/console 读输入(stdin)。</p>
+</li>
+<li>
+<p>1表示向 /dev/console 写输出(stdout)。</p>
+</li>
+<li>
+<p>2表示向 /dev/console 写错误日志(stderr)。</p>
+</li>
+</ul>
+<p>到目前为止，初始化工作基本完成。接下来kernel_init_freeable()要通过函数init_eaccess()解析全局变量ramdisk_execute_command指定的文件（包含路径）是否存在于内存，以确定是否有早期用户空间
+init（ramdisk）脚本。</p>
+<p>ramdisk_execute_command 是Linux
+内核中的一个全局变量，它保存了内核在挂载初始 RAM
+磁盘（initrd/initramfs）后第一个要运行的用户态程序的路径。在内核完成基础初始化并解压了
+initramfs 到 rootfs
+后，它需要启动一个进程来接管后续工作（如加载驱动、挂载真正的根分区）。这个变量存储的就是该程序的路径，默认值通常为
+“/init”，可以通过内核启动参数 rdinit= 进行修改。例如，在启动参数中加入
+rdinit=/bin/sh，内核就会直接启动一个 Shell 而不是运行默认的初始化脚本。</p>
+<p>如果 ramdisk_execute_command 指向的文件存在，内核就通过 run_init_process
+运行它。如果这个程序运行失败或文件不存在，内核才会去尝试运行通过 init=
+指定的程序，或者尝试默认的 /sbin/init、/etc/init 等路径。</p>
+<p>在 Linux 内核启动流程中，/init
+文件（initramfs，已经由bootloader在bootloader运行期间导入内存）是初始内存文件系统的灵魂。它是内核挂载内存文件系统后运行的第一个用户态程序（PID
+1）。/init 为脚本文件，通常是用 Shell 编写，它需要完成以下任务：</p>
+<ul>
+<li>
+<p>挂载基础文件系统，包括 /proc、/sys、/dev 等必要虚拟文件系统。</p>
+</li>
+<li>
+<p>扫描硬件并加载存储控制器（如 SATA, NVMe, RAID）或网络设备的驱动模块。</p>
+</li>
+</ul>
+<blockquote>
+<p>没有它，内核可能连硬盘都找不到。</p>
+</blockquote>
+<ul>
+<li>
+<p>读取内核命令行中的 root=UUID=…，找到真正的根磁盘分区。</p>
+</li>
+<li>
+<p>如果硬盘加密了，/init 会负责弹出密码输入框并激活分区。</p>
+</li>
+<li>
+<p>一旦真正的磁盘分区挂载好了，它会把当前系统切入到磁盘，并把 PID 1
+转交给磁盘上的 /sbin/init。</p>
+</li>
+</ul>
+<p>从内核启动到用户态init的切换过程可用图 30‑2表示。</p>
+<center>
+<figure>
+<img src="./media/image183.jpg" style="width:5.51042in;height:5.11458in" />
+<figcaption>
+<p>图 30‑2 从内核引导到用户态init的切换过程</p>
+</figcaption>
+</figure>
+</center>
+<p>如果 ramdisk_execute_command
+指向的文件不存在，则清空该变量，调用prepare_namespace()，准备并挂载根文件系统（rootfs）。这是内核完成自检后，转向执行用户态程序（如
+init 或 systemd）的关键一步。</p>
+<p>该函数是 Linux
+内核启动过程中非常核心的一部分，位于git/init/do_mounts.c。其定义为：</p>
+<pre><code>void __init prepare_namespace(void)
+{
+	if (root_delay) {
+		printk(KERN_INFO "Waiting %d sec before mounting root device...\n",  root_delay);
+		ssleep(root_delay);
+	}
+	wait_for_device_probe();
+	md_run_setup();
+	if (saved_root_name[0]) {
+		root_device_name = saved_root_name;
+		if (!strncmp(root_device_name, "mtd", 3) ||  !strncmp(root_device_name, "ubi", 3)) {
+			mount_block_root(root_device_name, root_mountflags);
+			goto out;
+		}
+		ROOT_DEV = name_to_dev_t(root_device_name);
+		if (strncmp(root_device_name, "/dev/", 5) == 0)
+			root_device_name += 5;
+	}
+	if (initrd_load())
+		goto out;
+	if ((ROOT_DEV == 0) &amp;&amp; root_wait) {
+		printk(KERN_INFO "Waiting for root device %s...\n", saved_root_name);
+		while (driver_probe_done() != 0 || (ROOT_DEV = name_to_dev_t(saved_root_name)) == 0)
+			msleep(5);
+		async_synchronize_full();
+	}
+	mount_root();
+out:
+	devtmpfs_mount();
+	init_mount(".", "/", NULL, MS_MOVE, NULL);
+	init_chroot(".");
+}
+</code></pre>
+<p>该函数的主要工作包括：</p>
+<ul>
+<li>如果启动参数设置了 root_delay，内核会先睡几秒。</li>
+</ul>
+<blockquote>
+<p>这通常用于给 USB 或火线硬盘等慢速设备留出驱动枚举的时间；</p>
+</blockquote>
+<ul>
+<li>
+<p>通过函数wait_for_device_prob()e等待设备探测，确保内核已经尝试加载并初始化了所有已知的硬件驱动；</p>
+</li>
+<li>
+<p>如果 root 文件系统在 Linux software RAID 上，比如/dev/md0，尝试把 md
+阵列组装并启动起来。</p>
+</li>
+<li>
+<p>解析内核启动参数 root= 指定的根设备（保存在saved_root_name）</p>
+</li>
+</ul>
+<!-- -->
+<ul>
+<li>
+<p>如果是嵌入式系统里常见的MTD（闪存）或 UBI
+设备，根文件系统不是普通磁盘分区，不走常规 /dev/sdaX
+这套流程，直接通过函数<u>mount_block_root()</u>挂载并跳到out，跳过普通加载流程</p>
+</li>
+<li>
+<p>将设备名称（如
+/dev/sda1）通过函数name_to_dev_t()转换为内核内部的设备号，并通过将字符串指针向后移动
+5 个字节的<u>方法</u>去除设备名称字符串开头的 /dev/ 前缀</p>
+</li>
+</ul>
+<!-- -->
+<ul>
+<li>尝试加载内存磁盘（Initrd/Initramfs）</li>
+</ul>
+<blockquote>
+<p>如果成功加载了 initrd，跳过普通加载流程直接跳到 out。</p>
+</blockquote>
+<ul>
+<li>如果还没找到根设备且开启了 rootwait
+参数，内核会进入死循环，直到目标设备出现</li>
+</ul>
+<blockquote>
+<p>这解决了异步扫描（如 NVMe 或 USB 3.0）时设备发现较慢的问题；</p>
+</blockquote>
+<ul>
+<li>
+<p>通过函数mount_root()将由启动参数root=指定的根设备挂载到当前目录（新的根目录）</p>
+</li>
+<li>
+<p>将 devtmpfs 文件系统挂载到新根文件系统的 /dev
+目录下（在根设备上已存在的/dev目录）</p>
+</li>
+<li>
+<p>利用init_mount()把“当前目录挂载树”移动成真正的 /</p>
+</li>
+</ul>
+<blockquote>
+<p>这里的 “.” 指当前目录，也就是前面mount_root()选择的新根所在位置。</p>
+</blockquote>
+<ul>
+<li>利用函数init_chroot(“.”)将当前进程的根目录切换到新挂载的点</li>
+</ul>
+<blockquote>
+<p>从此内核正式进入“用户世界”。</p>
+</blockquote>
+<p>一句话总结就是：if
+(init_eaccess(..)){…}块的作用就是检测内存启动脚本是否失效，如果失效，则立刻转头去准备挂载磁盘分区。</p>
+<p>最后，kernel_init_freeable()通过调用integrity_load_keys()加载 IMA 的
+X.509 证书和EVM 的X.509证书。</p>
+<p>IMA
+负责在文件执行或打开前校验其完整性（通过签名或哈希）。这个函数把预设在内核里的信任名单加载到内核的密钥环中，这样系统以后才能用这些公钥来验证二进制文件或库是否被篡改过。</p>
+<p>EVM 负责保护文件的扩展属性（xattrs），比如文件权限、所有者以及 IMA
+的签名本身。它确保攻击者不能通过修改元数据（比如把只读文件改成可写）来绕过安全检查。</p>
+<p>到kernel_init_freeable()运行结束为止，初始化工作基本结束，所有标记为__init的内存（位于__init_begin和__init_end之间）都不再有用，函数kernel_init()将陆续释放这些内存。</p>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="initcall机制简介.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="回收启动期专用资源并完成内核映射收尾.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="initcall机制简介.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="回收启动期专用资源并完成内核映射收尾.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

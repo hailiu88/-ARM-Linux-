@@ -1,0 +1,532 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>设备树节点 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="设备树节点"><a class="header" href="#设备树节点">设备树节点</a></h2>
+<p>设备树上的节点可以代表系统上的一个设备，也可以代表系统上的某一子系统或一条总线。描述一个节点的有节点名、节点地址、节点绝对路径和节点标号（label）。</p>
+<p>节点名为一个节点的名称，通常以节点所代表的设备名称命名一个节点，其命名方式为name@address，其中name部分为节点名，为1-31个字符的字符串，字符可以从0-9，a-z，A-Z，,
+._+-中选择。address部分为该节点的地址，地址可以为设备在CPU地址空间的地址，也可以不是CPU地址空间的地址，如何使用由设备驱动程序中设备树处理程序决定。</p>
+<p>类似于文件系统的路径，节点的绝对路径是指开始于根节点，以”/”分隔，由节点名(包含地址部分)构成的路径，如在上图中节点cpu0的绝对路径为：</p>
+<p>/cpus/cpu0</p>
+<p>节点标号是以”:”结尾的字符串，位于节点名的前面，以空白字符分隔。系统可以利用节点标号，也可以利用绝对路径访问节点。</p>
+<h3 id="根节点"><a class="header" href="#根节点">根节点</a></h3>
+<p>根节点以”/”表示，其绝对路径为”/”，可以拥有#address-cells，#size-cells，model，compatible，和serial-number属性，serial-number为可选项，其余属性为必选项。#address-cells由32位整型数为一个单元构成，可以是一个单元，也可以由多个单元组成。#address-cells指定构成其子节点地址所用的单元个数。#size-cells占用32位，指定表示子节点所占空间所需的单元个数。compatible属性值为字符串，表示与该设备树兼容的设备，通常由代表制造商和设备型号的字符串表示，制造商与设备型号之间以逗号分隔。</p>
+<p>根节点下面可以有alias、memory、reserved-memory、chosen、cpus等这几类节点。</p>
+<h3 id="alias节点"><a class="header" href="#alias节点">/alias节点</a></h3>
+<p>alias节点可以为节点定义别名，通过所定义的节点别名，同样可以访问节点。别名为由1-31个0-9、a-z、及“-”等字符组成，值为要定义别名的节点的全路径，如：</p>
+<pre><code>/ {
+
+    aliases {
+
+        serial0 = "/simple-bus@fe000000/serial@llc500";
+
+    };
+
+};
+</code></pre>
+<p>其中serial0 = “/simple-bus@fe000000/serial@llc500”</p>
+<p>为节点serial@llc500定义了一个serial0的别名，用户程序可以通过serial0访问serial@llc500节点。</p>
+<h3 id="memory节点"><a class="header" href="#memory节点">/memory节点</a></h3>
+<p>memory
+节点定义系统的内存结构，每一颗设备树至少要有一个memory节点。如果系统内存由多个不连续的内存空间组成，设备树可以包含多个memory节点。每个memory节点可包含的属性有device-type、reg、initial-mapped-area和hotpluggable等四个属性，其中device-type和reg属性为必选项，其余为可选项。device-type属性的值为字符串“memory”，reg属性为由一个或多个指定地址及空间大小的&lt;地址
+大小&gt;对构成，hotpluggable属性不需要赋值，当该属性出现时，表明该内存具有热插拔功能。下面是一个具有两个内存区域的memory节点实例：</p>
+<pre><code>memory@0 {
+
+    device_type = "memory";
+
+    reg = &lt;0x000000000 0x00000000 0x00000000 0x80000000&gt;;
+
+    };
+
+memory@100000000 {
+
+    device_type = "memory";
+
+    reg = &lt;0x000000001 0x00000000 0x00000001 0x00000000&gt;;
+
+    hotplugable
+
+};
+</code></pre>
+<h3 id="reserved-memory节点"><a class="header" href="#reserved-memory节点">/reserved-memory节点</a></h3>
+<p>表示操作系统不会使用该属性指定的内存。reserved-memory节点通过子节点指明保留区域。reserved-memory节点必须包含#address-cells、#size-cells和ranges三个属性，其中#address-cells和#size-cells的值为32位无符号数，ranges的值为空。</p>
+<p>reserved-memory的每一个子节点表示一片保留内存区域。子节点可以包含reg、size、alignment、alloc-ranges、compatible、no-map、resuable等七个属性，所有属性均为可选项，这里，reg属性的编码方式由其父节点的#address-cells和#size-cells指定，size所需的单元数由其父节点的#size-cells决定。alignment属性指明地址对齐值，编码所用单元数由父节点的#size-cells决定，alloc-ranges属性的编码方式与reg的编码方式相同。no-map属性和reusable属性的值为空，当子节点出现no-map属性时，操作系统不能够为该区域生成虚拟映射空间，而当reusable属性出现在子节点时，表明操作系统可以使用该区域，但当器件拥有该区域时，其拥有者可以要回该区域的使用权。下面给出了具有memory和reserved-memory属性的设备树实例。</p>
+<pre><code>/ {
+
+    #address-cells = &lt;1&gt;;
+
+    #size-cells = &lt;1&gt;;
+
+    memory {
+
+        reg = &lt;0x40000000 0x40000000&gt;;
+
+    };
+
+    reserved-memory {
+
+        #address-cells = &lt;1&gt;;
+
+        #size-cells = &lt;1&gt;;
+
+        ranges;
+
+        linux,cma {
+
+            compatible = "shared-dma-pool";
+
+            reusable;
+
+            size = &lt;0x2000000&gt;;
+
+            alignment = &lt;0x1000&gt;;
+
+            linux,cma-default;
+
+        };
+
+        display: framebuffer@88000000 {
+
+            reg = &lt;0x88000000 0x800000&gt;;
+
+        };
+
+        multimedia: multimedia@70000000 {
+
+            compatible = "acme, multimedia-memory";
+
+            reg = &lt;0x70000000 0x4000000&gt;;
+
+        };
+
+    };
+
+    fb0: video@12300000 {
+
+        memory-region = &lt;&amp;display&gt;;
+
+    };
+
+    codec: codec@12600000 {
+
+        memory-region = &lt;&amp;multimedia&gt;;
+
+    };
+
+};
+</code></pre>
+<h3 id="chosen节点"><a class="header" href="#chosen节点">/chosen节点</a></h3>
+<p>chosen节点不是用来指定设备，而是用来向系统传递参数，这类节点可以包含bootargs、stdin-path、stdout-path三种属性，其中bootargs用以向Linux传递引导参数，stdin-path和stdout-path用以指定标准输入和输出。这三个属性的值均为字符串类型，stdout-path和stdin-path的值为用作标准输入和标准输出设备的全路径或phandle，下面的例子给出了/chosen节点的使用方法。</p>
+<pre><code>/{
+
+chosen {
+
+    bootargs = "root=/dev/nfs rw nfsroot=192.168.1.1 console=ttyS0,115200";
+
+    stdout-path = &amp;uart3;
+
+    stdin-path = &amp;uart3;
+
+};
+
+bus@20000000 {
+
+    uart3: uart3@20000000 {
+
+        …
+
+    }
+
+}
+</code></pre>
+<p>这里，uart3为设备树上某一节点的标号。</p>
+<h3 id="cpus节点"><a class="header" href="#cpus节点">/cpus节点</a></h3>
+<p>cpus节点用于表示系统的cpu，根节点必须包含且只能包含一个/cpus节点。cpus节点可以包含多个cpu子节点，而且必须包含#address-cells和#size-cells属性，用以表明其子节点地址的编码方式。cpus节点可以包含其它标准属性，对cpus节点而言，这些属性为可选属性，通常，这些属性为各个子cpu节点所共有。</p>
+<h3 id="cpuscpu子节点"><a class="header" href="#cpuscpu子节点">/cpus/cpu*子节点</a></h3>
+<p>cpu*子节点代表一个相对独立的、能够在不影响其它cpu节点的情况下运行操作系统的硬件模块，*为代表cpu编号的数字。应该把共用同一个MMU的硬件放在同一个cpu节点内，这样，各个cpu节点就相对独立。ARM系统通常有多个相对独立的CPU，比如，i.MX6D具有两个cortex-A结构的CPU，
+i.MX6Q具有4个cortex-A结构的CPU，i.MX8具有4个cortex-A72和2个cortex-A53结构的CPU及2个cortex-M结构的CPU，还包含1个DSP和2个GPU，这些CPU能够独立运行，可以放在不同的cpu节点内。</p>
+<p>cpu*节点必须包含device-type、reg、clock-frequency、timebase-frequency等属性，其它可以包含的属性有status、enable-method、cpu-release-addr、power-isa-version、mmu-type等，也可以包含其它标准属性。device-type值为字符串“cpu”，表示该节点为cpu。reg属性值用以表示节点在cpus节点空间的位置，编码方式由cpus的#address-cells和#size-cells决定。Clock-frequency属性的值为一个32位或64位无符号整数，以Hz为单位，表示cpu的运行频率。timebase-frequency属性同样为一个32位或64位无符号整数，表示时间基准采用的频率。Status属性值为字符串，有“okay”和”disabled”两个选项，“okay”表示该节点运行正常，“disabled”表示该节点处于休眠或复位等非正常运行状态。其它属性使用频率没有前面几个的使用频率高，这里不一一介绍，有兴趣的读者可以参考设备树规范文件。下面给出了一个具有两个CPU、采用三级缓存的系统设备树实例。</p>
+<pre><code>cpus {
+
+    #address-cells = &lt;1&gt;;
+
+    #size-cells = &lt;0&gt;;
+
+    cpu@0 {
+
+        device_type = "cpu";
+
+        reg = &lt;0&gt;;
+
+        cache-unified;
+
+        cache-size = &lt;0x8000&gt;; // L1, 32 KB
+
+        cache-block-size = &lt;32&gt;;
+
+        timebase-frequency = &lt;82500000&gt;; // 82.5 MHz
+
+        next-level-cache = \&lt;&amp;L2_0\&gt;; // phandle to L2
+
+        L2_0: l2-cache {
+
+            compatible = "cache";
+
+            cache-unified;
+
+            cache-size = &lt;0x40000&gt;; // 256 KB
+
+            cache-sets = &lt;1024&gt;;
+
+            cache-block-size = &lt;32&gt;;
+
+            cache-level = &lt;2&gt;;
+
+            next-level-cache = &lt;&amp;L3&gt;; // phandle to L3
+
+            L3: l3-cache {
+
+                compatible = "cache";
+
+                cache-unified;
+
+                cache-size = &lt;0x40000&gt;; // 256 KB
+
+                cache-sets = &lt;0x400&gt;; // 1024
+
+                cache-block-size = &lt;32&gt;;
+
+                cache-level = &lt;3&gt;;
+
+            };
+
+        };
+
+    };
+
+    cpu@1 {
+
+        device_type = "cpu";
+
+        reg = &lt;1&gt;;
+
+        cache-unified;
+
+        cache-block-size = &lt;32&gt;;
+
+        cache-size = &lt;0x8000&gt;; // L1, 32 KB
+
+        timebase-frequency = &lt;82500000&gt;; // 82.5 MHz
+
+        clock-frequency = &lt;825000000&gt;; // 825 MHz
+
+        cache-level = &lt;2&gt;;
+
+        next-level-cache = &lt;&amp;L2_1&gt;; // phandle to L2
+
+        L2_1: l2-cache {
+
+            compatible = "cache";
+
+            cache-unified;
+
+            cache-size = &lt;0x40000&gt;; // 256 KB
+
+            cache-sets = &lt;0x400&gt;; // 1024
+
+            cache-line-size = &lt;32&gt;; // 32 bytes
+
+            next-level-cache = &lt;&amp;L3&gt;; // phandle to L3
+
+        };
+
+    };
+
+};
+</code></pre>
+<p>与缓存有关的属性包括compatible、cache-unified、cache-size、cache-sets、cache-line-size及next-level-cache等，其中，cache-unified、cache-size、cache-sets、cache-line-size表示cache的结构，对cache比较熟悉的读者应该知道其含义，这里不作介绍。next-level-cache代表其下一级cache，上一级cache通过下一级cache的句柄访对其进行访问。</p>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="标准属性.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="属性绑定（bindings）.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="标准属性.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="属性绑定（bindings）.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

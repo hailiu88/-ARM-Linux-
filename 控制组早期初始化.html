@@ -1,0 +1,505 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>控制组早期初始化 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="控制组早期初始化"><a class="header" href="#控制组早期初始化">控制组早期初始化</a></h2>
+<p>控制组（cgroup-controller
+group）是Linux中一个比较重要的概念，Linux利用控制组进行资源管理。通过控制组，系统管理员可以设定各个进程使用资源的上限，为不同的进程分配不同的资源使用优先级。控制组资源管理的基本思路就是把资源（如中央处理器，内存，磁盘，外设等）按类别分成多个组，每个组按功能又可以分成多个组。这样依次可以分成更小的单元，从而形成一个树状结构，这个树状结构与下面讲到的控制组文件系统的目录结构一一对应。系统管理员可以把某一进程分配到特定的控制组文件系统组里，从而允许进程使用该组定义的资源。可以把一个进程分配到多个组里，以便进程使用不同的资源，图
+7‑2所示为依据第一版cgroup标准实施的一个控制组树状结构示例。</p>
+<center>
+<figure>
+<img src="./media/image72.jpg" style="width:3.12598in;height:2.58554in" alt="图片 2" />
+<figcaption>
+<p>图 7‑2 cgroup结构及与进程的关系</p>
+</figcaption>
+</figure>
+</center>
+<p>cgroup资源管理机制定义了三个基本概念，分别为控制组（cgroup）、控制组文件系统（cgroupfs）和子系统（sub-system）。子系统利用控制组和控制组文件系统提供的信息实现对系统资源的管理和调度，我们将以第二版cgroup标准为例介绍控制组资源管理中用到的一些基本概念。</p>
+<p>控制组是一组进程或线程的集合，这一组进程使用由同一组控制组文件系统定义的上限或参数。在Linux系统中，控制组以树状结构进行组织，其树状结构与控制组文件系统的树状结构完全一致。系统管理员通过在/sys/fs/cgroup下的子目录里建立、删除及重新命名子目录，可以改变控制组的树状结构。</p>
+<p>每个控制组可以是进程的集合，也可以是线程的集合，还可以是多个下一级cgroup的集合。在第一版cgroup标准里，资源管理可以细分到线程，一个线程与其所在的进程可以在不同的cgroup里。这虽然提供了一定的灵活性，但所造成的不便远大于所提供的好处。第二版cgroup标准限定只有不包含进程的控制组才能够利用控制文件控制其子控制组资源的使用，即一个控制组要么完全由下一级控制组组成，要么完全由进程组成，而不能由进程和控制组混合组成，这样的结果就是进程只能位于控制组树状结构的叶子上。</p>
+<p>第二版cgroup标准的这些规定虽然降低了管理过程的复杂度，但也失去了某些情况下把管理细分到线程所提供的优势，为此，linux又引进了线程化子树概念。所谓的线程化子树就是控制组树上的一支树杈，其上的节点既可以包含子控制组，也可以包含线程，或二者的组合。线程化子树的根节点为距该树枝最近的，只包含子控制组的节点。在第二版cgroup标准中，把只包含子控制组的节点和只包含进程的节点划归为资源域类（domain），把线程化子树的根节点归为线程化域类（threaded
+domain），而把线程化子树上的其它节点归为线程化控制组类。</p>
+<p>子系统sub-system也称作资源管理器，是Linux内核模块，用来改变进程的行为，如限定控制组的CPU使用时间，允许控制组占用的内存数量，统计控制组内进程的CPU占用时间，冻结或恢复进程的运行。资源管理器利用控制组的分类功能、以特定方式处理一组任务。通常，每种资源有一个独立的资源控制器。在第一版控制组标准中，每种资源控制器都有自己独立的树状结构，用户需要在资源管理器的树状结构中对单个资源进行调度，为进程使用该资源设置上限。在第二版控制组标准里，控制组与各个资源管理器使用统一的树状结构，这样，用户在控制组文件系统上就可以实现对资源的调度。</p>
+<p>ubuntu
+Linux定义了18个子系统，即18个资源管理器。下面列出部分经常使用的子系统。</p>
+<ul>
+<li>blkin</li>
+</ul>
+<blockquote>
+<p>用以设置块设备的使用上限。</p>
+</blockquote>
+<ul>
+<li>cpu</li>
+</ul>
+<blockquote>
+<p>控制对cpu的使用。</p>
+</blockquote>
+<ul>
+<li>cpuacct</li>
+</ul>
+<blockquote>
+<p>该子系统自动生成控制组中任务使用资源的报告。</p>
+</blockquote>
+<ul>
+<li>cpuset</li>
+</ul>
+<blockquote>
+<p>cpu子集，从中为控制组中的特定任务分配cpu及内存结点。</p>
+</blockquote>
+<ul>
+<li>devices</li>
+</ul>
+<blockquote>
+<p>控制器件的使用。</p>
+</blockquote>
+<ul>
+<li>freezer</li>
+</ul>
+<blockquote>
+<p>暂停或恢复控制组中任务的执行。</p>
+</blockquote>
+<ul>
+<li>memory</li>
+</ul>
+<blockquote>
+<p>为控制组中的任务设置内存使用上限，自动生成内存使用统计报告。</p>
+</blockquote>
+<ul>
+<li>net_cls</li>
+</ul>
+<blockquote>
+<p>标示网络数据来源，以便网络控制器知道数据来自哪一个控制组。</p>
+</blockquote>
+<ul>
+<li>net_prio</li>
+</ul>
+<blockquote>
+<p>为网络数据动态设置优先级。</p>
+</blockquote>
+<ul>
+<li>ns</li>
+</ul>
+<blockquote>
+<p>命名空间，通过命名空间对资源进行调度，不同的命名空间，资源调度策略可以完全不同。</p>
+</blockquote>
+<p>cgroupfs为Linux伪文件系统，是linux管理模块的对外接口，系统管理员可以把该文件系统挂载到指定位置。在第一版控制组标准中，各个资源控制器都有其独立的伪文件系统，系统允许把不同资源控制器对应的文件系统挂载到不同位置，而第二版控制组标准要求所有资源控制器使用同一个伪文件系统。对于新版的Linux操作系统，systemd会在引导阶段把该文件系统挂载到/sys/fs/cgroup上，在后续的介绍中，我们会默认该文件系统挂载在/sys/fs/cgroup上。cgroup目录下的每个目录对应控制组树状结构的一个节点。采用第一版控制组标准的资源管理系统，每一个资源管理器在cgroups目录下都有一个相应的子目录，而采用第二版cgroup标准的资源管理系统，其下的子目录不必要一定对应一种资源，而是包含cgroup.controllers和cgroup.subtree_control两个文件，通过这两个文件实现对资源的管理。但在目前的实现中，由于部分资源控制器还不支持第二版控制组标准，为了与第一版控制组标准兼容，sys/fs/cgroup目录里的各个子目录仍然与资源控制器一一对应。利用控制组伪文件系统，管理员可以创建或删除控制组结构树上节点，设定进程的资源使用上限和优先级别，了解各个进程或线程使用资源的状况，实现对进程使用资源的控制。</p>
+<p>系统管理员可以在每个子目录下创建新的子目录，从而在控制组结构树上生成一个新的控制组节点，当然也可以从中删除一个目录，因而从树状结构中删除一个控制组节点。每个子目录下可以包含核心控制文件、资源控制文件及资料文件等多种类型的文件。资料文件为只读文件，由系统生成，供系统管理员了解系统资源的使用状况。核心控制文件和资源控制文件为可读写文件，由系统管理员创建或修改，系统利用这些文件对该资源控制器所控制的资源进行调度。用于控制资源使用的文件作用于其子目录对应的进程。</p>
+<p>在每个子目录下可以包含核心控制文件和资源控制文件。核心控制文件作用于控制组结构，文件以cgroup命名，文件后缀表示文件的类型，比较重要的文件有cgroup.proc，
+cgroup.type，cgroup.thread，cgroup.subtree_control等。cgroup.proc记录该文件所在子目录对应的cgroup包含的所有进程。读该文件可显示当前控制组包含的所有进程，把pid写入该文件即把进程pid划入当前目录对应的控制组。可以通过如下所示方式操作该文件：</p>
+<ul>
+<li>创建cg1控制组</li>
+</ul>
+<blockquote>
+<p>#mkdir /sys/fs/cgroup/cpu/cg1</p>
+</blockquote>
+<ul>
+<li>把当前进程划入cg1控制组</li>
+</ul>
+<blockquote>
+<p>#echo $$ &gt; /sys/fs/cgroup/cpu/cg1/cgroup.proc</p>
+</blockquote>
+<ul>
+<li>显示控制组包含的进程</li>
+</ul>
+<blockquote>
+<p>#cat /sys/fs/cgroup/cpu/cg1/cgroup.proc</p>
+</blockquote>
+<p>cgroup.type为该子目录对应的控制组的类型，控制组的类型可以为资源域（domain）、线程化域（threaded
+domain）、线程化控制组（threaded）或非法域（invalid
+domain）。前三种类型为在介绍控制组概念时提到的控制组类型，最后一种类型为过渡类型，用于创建线程化子树过程中的临时类型，表示该控制组还处于非法状态。处于非法状态的控制组不能包含进程，也不能进行资源控制，只有把其转换为合法类型才可以包含进程。使用非法域的目的是为了以后能够扩充线程化控制组概念。</p>
+<p>可以通过如下命令设置或改变控制组类型：</p>
+<ul>
+<li>把cg1控制组定义为线程化控制组</li>
+</ul>
+<blockquote>
+<p>#echo threaded &gt; /sys/fs/cgroup/cpu/cg1/cgroup.type</p>
+</blockquote>
+<ul>
+<li>把cg1控制组定义为资源域类控制组</li>
+</ul>
+<blockquote>
+<p>#echo domain &gt; /sys/fs/cgroup/cpu/cg1/cgroup.type</p>
+</blockquote>
+<ul>
+<li>把cg1定义为线程化控制组</li>
+</ul>
+<blockquote>
+<p>#echo threaded domain &gt; /sys/fs/cgroup/cpu/cg1/cgroup.type</p>
+</blockquote>
+<p>cgroup.threads文件记录文件所对应的控制组包含的所有线程标识代码tid。把线程归于一个控制组的方法是把线程标识代码写入相应的cgroup.threads文件，从文件中把一个线程的标识码删除就会把线程从控制组移出。</p>
+<p>cgroup.controllers文件为只读文件，该文件罗列所在控制组使用的资源控制器，这些控制器必须来自于其父控制组。</p>
+<p>cgroup.subtree_control记录控制组真正启用的资源控制器，所含控制器是cgroup.controller的子集，即控制组只能从其cgroup.controllers文件罗列的控制器中启用资源控制器。下例给出了利用文件cgroup.sub_control启用和禁用资源控制器的方法。</p>
+<ul>
+<li>创建一个新的控制组</li>
+</ul>
+<blockquote>
+<p>#mkdir /sys/fs/cgroup/mycgroup</p>
+</blockquote>
+<ul>
+<li>在该控制组添加pids，cpu和memory资源控制器</li>
+</ul>
+<blockquote>
+<p>#echo ‘+pids +cpu +memory’&gt;
+/sys/fs/cgroup/mycgroup/cgroup.subtree_control</p>
+</blockquote>
+<ul>
+<li>在mycgroup控制组禁用pids控制器</li>
+</ul>
+<blockquote>
+<p>#echo ‘-pids’ &gt; /sys/fs/cgroup/mycgroup/cgroup.subtree_control</p>
+</blockquote>
+<p>除去上面介绍的核心控制文件外，每个控制组还包含cgroup.events，cgroup.max.descendants，cgroup.max.depth，cgroup.stat，cgroup.freeze，cgroup.kill，cgroup.pressure及irq.pressure等核心控制文件，有兴趣的读者可以参考相应的Linux的cgroup用户手册。</p>
+<p>除根目录cgroup外，每个子目录里还包含用于各种资源控制的资源控制接口文件。接口文件的命名格式一般为资源.参数，如用于调节cpu时钟周期分配的资源控制器cpu所用的控制接口文件有cpu.stat，cpu.weight.nice，cpu.max，cpu.max.burst，cpu.pressure，cpu.idle等九个控制文件，用于内存资源管理的接口文件有memory.current，memory.min，memory.low，memory.high，memory.max，memory.reclaim，memory.oom.group等二十一个控制文件。这些文件有些用来显示内存使用过程数据统计，大部分用来设定控制组使用内存的限定参数。一般情况下，一个文件设置一个参数，如：</p>
+<p>#echo “2M” &gt; /sys/fs/cgroup/mycgroup/memory.min</p>
+<p>为mycgroup控制组设置最小内存保障限制，当控制组使用内存小于2M
+字节时，在何种情况下都不会释放内存。</p>
+<p>不同的资源控制器所用的控制参数不同，控制接口文件的个数也不相同，详细情况可以参考cgroup用户手册。</p>
+<p>在实现cgroup资源管理机制的代码中，利用了struct cgroup、struct
+cgroup_root、struct cgroup_subsys、struct
+cgroup_subsys_state等不同的数据结构。cgroup结构体用于描述控制组的树状结构，结构树上的每个节点对应一个cgroup结构体，控制组内的所有进程或线程使用同样的资源及配置参数。结构体cgroup定义在文件git/include/linux/cgroup-defs.h文件里，主要包括描述与节点自身关联的各子控制系统状态，控制组所在树的根节点，节点所在层级，树的最大深度，节点包含的各种类型的孩子个数，启用的资源控制器及控制资源控制器启用和禁用的掩码，指向各种控制器状态的指针数组，与节点对应的系统文件节点，与节点关联的所有子系统状态链表等。</p>
+<p>描述根节点的数据结构为struct
+cgroup_root，定义在文件git/include/linux/cgroup-defs.h中，主要包含对应根节点的、利用结构体struct
+kernfs_root描述的伪文件系统的根节点kf_root、控制子系统启用或禁用的子系统掩码subsys_mask、定义根节点自身struct
+cgroup结构体的cgrp、保存各种资源管理器根节点的链表（适用于第一版cgroup标准）等。</p>
+<p>用于定义不同类型资源调度子系统的结构体struct
+cgroup_subsys定义在文件git/include/linux
+/cgroup-defs.h里，主要包括控制资源的各种控制函数、资源控制器的根节点root、资源名称name、系统默认启用的子系统标志位implicit_on_dfl、控制组是否为线程化控制组的标志位threaded、管理资源的控制文件类型列表cfts及默认控制文件类型dfl_cfts等不同的字段。</p>
+<p>struct
+cgroup_subsys_state描述与控制组关联的各个子系统状态。与控制树各个节点关联的子系统状态结构体形成一棵与控制组树状结构完全对应的子系统状态树，每个子系统状态树节点对应控制树上的一个节点，资源控制器主要利用该数据结构进行资源调节。子系统状态结构体主要包括指向与之对应的控制组的指针、指向资源调度子系统的指针、状态树节点的父节点、姊妹节点链表及孩子节点链表等。</p>
+<p>cgroup_init_early()函数的作用是创建一个默认的cgroup根节点，初始化根节点的根节点链表，设置初始化任务中的cgroup任务，即把init_css_set的地址赋予初始化任务init_task的cgroup指针。初始化任务由init_css_set定义，init_css_set的定义为：</p>
+<pre><code>struct css_set init_css_set = {
+
+.refcount = REFCOUNT_INIT(1),
+
+.dom_cset = &amp;init_css_set,
+
+.tasks = LIST_HEAD_INIT(init_css_set.tasks),
+
+.mg_tasks = LIST_HEAD_INIT(init_css_set.mg_tasks),
+
+.dying_tasks = LIST_HEAD_INIT(init_css_set.dying_tasks),
+
+.task_iters = LIST_HEAD_INIT(init_css_set.task_iters),
+
+.threaded_csets = LIST_HEAD_INIT(init_css_set.threaded_csets),
+
+.cgrp_links = LIST_HEAD_INIT(init_css_set.cgrp_links),
+
+.mg_preload_node = LIST_HEAD_INIT(init_css_set.mg_preload_node),
+
+.mg_node = LIST_HEAD_INIT(init_css_set.mg_node),
+
+.dfl_cgrp = &amp;cgrp_dfl_root.cgrp,
+
+};
+</code></pre>
+<p>其作用是为处于不同处理阶段的任务链表设置表头，处于不同处理阶段的任务会放在不同的链表。</p>
+<p>结构体css_set为资源管理过程所需数据的集合，包含各个子系统状态的集合，与之关联的控制组，各种任务链表等。如果节点为资源域或线程化的资源域，该结构体还包括利用该资源域的所有节点列表。此外，为了能够把一个进程或线程从一个控制组迁移到另一个控制组，该结构体还记录迁移时的源节点和目的节点的信息。使用该结构体的目的不是为了资源管理本身，而是为了节省系统运行过程中任务结构体的存储空间，加速进程的复刻和退出（fork()/exit()）速度。当一个任务需要复刻或退出时，只需简单地把该结构体的refcount域加一或减一，然后一个简单的链表项插入或删除，不需要创建或拷贝大量的数据。Linux的各个任务通过自己的css_set访问子系统状态及各个控制组对应的cgroup结构体数据。</p>
+<p>除了创建默认的控制组根节点外，cgroup_init_early()函数还检查子系统是否合法，为Linux支持的子系统命名及编号。如果子系统要求早期初始化（由结构体cgroup_subsys的early_init标志位决定），则调用子系统初始化程序初始化对应的子系统。</p>
+<p>早期初始化子系统的主要工作是设置描述子系统的数据结构体（struct
+cgroup_subsys）中的各个域的值，主要包括把子系统状态标号置为0，设置子系统控制组文件链表头，把结构体中根域的值置为默认的控制组根节点，为子系统创建子系统状态结构体(struct
+cgroup_subsys_state)并把该结构体的标识号置为1，最后，把所创建的子系统状态结构体记录到子系统状态集中。</p>
+<p>css_set、cgroup_subsys_state和cgroup三种结构体共同解决了哪个进程属于哪个控制组，并受哪些子系统限制的问题。cgroup代表内核中的一个
+cgroup 目录。它负责把
+CPU、内存等资源控制器组织成树状结构。cgroup_subsys_state是状态载体，它是具体某个子系统在某个
+cgroup 节点上的资源限制状况，每个 cgroup 节点都有一组 css
+指针。css_set是进程（task_struct）与 cgroup
+之间的桥梁。一个进程会同时属于多个不同子系统的
+cgroup，为了性能，内核不让每个进程直接指向多个 cgroup，而是指向一个
+css_set。如果两个进程所属的各子系统控制组完全一样，它们就共享同一个
+css_set。它们之间的关系示于图
+7‑3，其中css_set包含一个cgroup_subsys_state指针数组，指针数组中的每一个指针指向一个cgroup_subsys_state结构体，cgroup_subsys_state中的指针cgroup指向一个cgroup结构体。</p>
+<center>
+<figure>
+<img src="./media/image73.jpg" />
+<figcaption>
+<p>图 7‑3 cgroup中几种结构体的关系</p>
+</figcaption>
+</figure>
+</center>
+<p>目前，Linux最多支持13个子系统，定义在include/linux/cgruop_subsys.h中，包括cpuset、cpu、cpuacct、io、memory、devices、freezer、net_cls、perf_event、net_prio、hugetlb、pids、rdma、debug等，具体支持哪些子系统，由Linux系统开发人员或程序编译人员在编译过程中通过编译开关选择。</p>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="调试对象基础结构早期初始化.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="停用中断.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="调试对象基础结构早期初始化.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="停用中断.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

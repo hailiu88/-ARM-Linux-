@@ -1,0 +1,503 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>工作队列早期初始化 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="工作队列早期初始化"><a class="header" href="#工作队列早期初始化">工作队列早期初始化</a></h2>
+<p>这是工作队列初始化的前半段。在 Linux 内核中，workqueue_init_early() 是
+工作队列子系统的核心初始化函数。它在系统启动的早期被调用，负责在系统具备创建线程能力之前，搭建起工作队列的基础骨架。为了更好地理解工作队列的初始化过程，下面简单介绍一下Linux一个任务（由work结构体描述）的处理过程。</p>
+<p>在 Linux 内核中，工作队列（Workqueue ）
+是一种将任务推迟执行的异步机制，运行在进程上下文中。这与直接运行一个进程不同，工作队列是将任务（函数）委托给内核创建的一组特殊的执行者线程（Worker
+Threads）来执行。在整个任务执行过程中，要利用三个非常重要的数据结构，它们决定了任务由谁处理、怎么处理。这三个数据结构分别是：</p>
+<ul>
+<li>任务单（work_struct）</li>
+</ul>
+<blockquote>
+<p>用户定义的最小任务单元。它包含一个函数指针（你要执行的具体逻辑）和数据。</p>
+</blockquote>
+<ul>
+<li>工作者或执行者（worker）</li>
+</ul>
+<blockquote>
+<p>内核中的一个线程（名字通常是
+kworker/uX:X），负责从队列里取任务并执行。</p>
+</blockquote>
+<ul>
+<li>工作者池或执行者池(worker_pool)</li>
+</ul>
+<blockquote>
+<p>管理一组 执行者。每个 CPU
+通常有两个池，一个是普通优先级的，另一个是高优先级的。</p>
+</blockquote>
+<p>在调用 schedule_work() 函数时，内核首先确定当前 CPU 对应的
+执行者池，并将任务单 挂到
+执行者池的worklist这个双向链表的末尾（pool-&gt;worklist
+）。之后，内核通过池的空闲列表（pool-&gt;idle_list）检查池中是否有空闲的
+执行者。如果有，则唤醒该 执行者的进程状态（从 S 变为
+R）。如果没有空闲执行者且当前执行者都在忙，内核会根据负载决定是否创建一个新的
+kworker。</p>
+<p>执行者线程的执行过程是一个循环，它本质上是一个“领料-加工”的过程。执行者线程被唤醒后，进入
+worker_thread() 函数。它会检查 pool-&gt;worklist
+是否为空。如果不为空，它会取走链表头部的第一个
+任务单（work_struct）。在执行前，内核会通过 pool_workqueue ()
+来确保任务在正确的环境下运行。执行者会标记自己处于
+工作状态，并调用任务单指定的任务（即
+work-&gt;func指定的函数）。此时，任务正式开始在内核态执行。</p>
+<p>Linux 使用的是 CMWQ 机制。它的调度逻辑保持 CPU 繁忙但不过载。如果一个
+执行者在执行任务时进入了睡眠（例如等待磁盘
+I/O），内核会立刻检测到，并唤醒池中的另一个
+执行者来处理队列中的下一个任务。同一个任务单绝不会在多个 CPU
+上同时运行。</p>
+<p>当 任务单指定的任务完成后（即work-&gt;func 执行完毕），执行者
+会检查是否有其他任务需要处理。如果 执行者池的worklist 为空，该 执行者
+不会被立即销毁，而是进入 pool-&gt;idle_list
+睡眠。如果长时间没有新任务，该线程才会被内核回收。如果有进程在等待这个任务的完成，该执行者会被唤醒。</p>
+<p>从用户提交任务到完成，本质上是任务被挂载到 CPU
+的工作池子，唤醒一个内核线程，由这个线程代为执行。</p>
+<p>workqueue_init_early()函数首先初始化工作队列所需的各种数据结构，确保内核在后续的初始化阶段（如驱动加载）能够正常分配和使用工作队列。在初始化全局
+工作者池、工作队列所需链表以及各种锁后，设置 用于非绑定工作队列的 CPU
+掩码用于标志不适合执行队列工作的CPU掩码
+wq_unbound_cpumask。此外，该函数还为每个可能的
+CPU创建并初始化两个默认的工作者池，一个普通优先级池和一个高优先级（highpri）池。最后为系统分配预定义的标准全局工作队列，例如
+system_wq、system_highpri_wq、system_long_wq
+等，以便内核其他组件直接使用。</p>
+<p>函数workqueue_init_early()定义在文件qit/kernel/workqueue.c中，其定义为：</p>
+<pre><code>void __init workqueue_init_early(void)
+{
+	int std_nice[NR_STD_WORKER_POOLS] = { 0, HIGHPRI_NICE_LEVEL };
+	int hk_flags = HK_FLAG_DOMAIN | HK_FLAG_WQ;
+	int i, cpu;
+
+	BUILD_BUG_ON(__alignof__(struct pool_workqueue) &lt; __alignof__(long long));
+	BUG_ON(!alloc_cpumask_var(&amp;wq_unbound_cpumask, GFP_KERNEL));
+	cpumask_copy(wq_unbound_cpumask, housekeeping_cpumask(hk_flags));
+	pwq_cache = KMEM_CACHE(pool_workqueue, SLAB_PANIC);
+	for_each_possible_cpu(cpu) {
+		struct worker_pool *pool;
+		i = 0;
+		for_each_cpu_worker_pool(pool, cpu) {
+			BUG_ON(init_worker_pool(pool));
+			pool-&gt;cpu = cpu;
+			cpumask_copy(pool-&gt;attrs-&gt;cpumask, cpumask_of(cpu));
+			pool-&gt;attrs-&gt;nice = std_nice[i++];
+			pool-&gt;node = cpu_to_node(cpu);
+			mutex_lock(&amp;wq_pool_mutex);
+			BUG_ON(worker_pool_assign_id(pool));
+			mutex_unlock(&amp;wq_pool_mutex);
+		}
+	}
+	for (i = 0; i &lt; NR_STD_WORKER_POOLS; i++) {
+		struct workqueue_attrs *attrs;
+		BUG_ON(!(attrs = alloc_workqueue_attrs()));
+		attrs-&gt;nice = std_nice[i];
+		unbound_std_wq_attrs[i] = attrs;
+
+		BUG_ON(!(attrs = alloc_workqueue_attrs()));
+		attrs-&gt;nice = std_nice[i];
+		attrs-&gt;no_numa = true;
+		ordered_wq_attrs[i] = attrs;
+	}
+	system_wq = alloc_workqueue("events", 0, 0);
+	system_highpri_wq = alloc_workqueue("events_highpri", WQ_HIGHPRI, 0);
+	system_long_wq = alloc_workqueue("events_long", 0, 0);
+	system_unbound_wq = alloc_workqueue("events_unbound", WQ_UNBOUND,
+					    WQ_UNBOUND_MAX_ACTIVE);
+	system_freezable_wq = alloc_workqueue("events_freezable",  WQ_FREEZABLE, 0);
+	system_power_efficient_wq = alloc_workqueue("events_power_efficient",
+					      WQ_POWER_EFFICIENT, 0);
+	system_freezable_power_efficient_wq = alloc_workqueue("events_freezable_power_efficient",
+					      WQ_FREEZABLE | WQ_POWER_EFFICIENT,    0);
+	BUG_ON(!system_wq || !system_highpri_wq || !system_long_wq ||
+	      !system_unbound_wq || !system_freezable_wq ||
+	       !system_power_efficient_wq ||  !system_freezable_power_efficient_wq);
+}
+</code></pre>
+<p>在开始介绍代码之前，先介绍两个预定义的常数和两个标志位：</p>
+<ul>
+<li>NR_STD_WORKER_POOLS</li>
+</ul>
+<blockquote>
+<p>定义每个CPU拥有的工作者池的数量，通常为2。</p>
+</blockquote>
+<ul>
+<li>HIGHPRI_NICE_LEVEL</li>
+</ul>
+<blockquote>
+<p>用以定义最高优先级修正值，通常为-20。优先级修正值越小，修正后的进程优先级越高。</p>
+</blockquote>
+<ul>
+<li>HK_FLAG_DOMAIN</li>
+</ul>
+<blockquote>
+<p>管家调度域标志位。当这一标志位=位置1时，该 CPU 需要负责调度域相关的
+杂物清理工作。</p>
+</blockquote>
+<ul>
+<li>HK_FLAG_WQ</li>
+</ul>
+<blockquote>
+<p>管家工作队列标志位。当这一标志位置1时，该 CPU 负责执行
+工作队列相关的后台工作。</p>
+</blockquote>
+<p>第一行代码BUILD_BUG_ON(__alignof__(struct pool_workqueue) &lt;
+__alignof__(long
+long))的作用是保证结构体pool_workqueue八字节对齐。如果没有对齐，则在编译期间报错。第二行代码的作用是为cpu掩码变量wq_unbound_cpumask分配内存。如果分配内存失败，则出错报警。之后，初始化函数利用函数housekeeping_cpumask()获取cpu管家掩码housekeeping_mask，并通过函数cpumask_copy()把cpu管家掩码赋予wq_unbound_cpumask。这一行代码的意思就是位于不绑定到固定
+CPU 的任务队列里的（unbound workqueue）
+的任务只能在同时参与调度域并负责队列的 CPU 上运行。如果某 CPU 被
+isolcpus 隔离，它就不会出现在
+cpu管家掩码housekeeping_cpumask的第六位(HK_FLAG_WQ)。</p>
+<p>pwq_cache =
+KMEM_CACHE()的作用是为结构体pool_workqueue（简称pwq）在内核缓冲区分配内存，并把首地址赋予pwq_cache指针。如果分配内存失败，则产生内核崩溃错误。在
+Linux 内核的 CMWQ (Concurrency Managed Workqueue) 机制中，pool_workqueue
+是连接工作队列与底层线程池的核心中间层。它充当了面向用户的任务队列结构体（
+workqueue_struct）与面向执行体的执行者池（ worker_pool）
+之间的多对一映射表。一个工作队列（如 system_wq）在每个 CPU 或 NUMA
+节点上都会对应一个 pwq，记录了特定工作队列在该
+CPU/节点上的执行参数（如最大并发数 max_active）。</p>
+<p>之后的循环模块初始化每个CPU的所有执行者池。在这段代码中，首先利用函数init_worker_pool()初始化池所用的链表和哈希表，并把其余各字段设为默认值，然后初始化结构体的cpu字段、NUMA节点字段以及attr字段的cpu掩码字段和优先级修正值字段。在该循环模块的最后通过函数worker_pool_assign_id()为每个池分配一个标号。</p>
+<p>下一个循环模块是为每一个不与CPU绑定的工作队列和顺序执行的工作队列成员分配用于保存描述
+执行属性 （运行在哪些 CPU、以什么优先级、属于哪个 NUMA
+节点等属性）结构体的内存，并初始化这些队列的默认属性。所分配保存执行属性的内存地址记录在数组unbound_std_wq_attrs[]和ordered_wq_attrs[]中。</p>
+<p>最后，workqueue_init_early()为一些通用的系统队列分配内。这些系统队列为：</p>
+<ul>
+<li>system_wq</li>
+</ul>
+<blockquote>
+<p>系统默认提供的、最常用的 并发管理工作队列
+(CMWQ)。当不想自己创建一个专门的内核线程池，而只是想异步执行一个简单的函数时，它是首选方案。</p>
+</blockquote>
+<ul>
+<li>system_highpri_wq（系统高优先级工作队列）</li>
+</ul>
+<blockquote>
+<p>是 Linux 内核预定义的一个特殊工作队列。它在底层结构上与 system_wq
+相似，但在调度策略和响应速度上有本质区别。它的存在不是为了跑得快（那是
+system_highpri_wq
+的活），而是为了别挡道。当任务预计会运行较长时间，或者包含可能导致长时间阻塞的操作（如复杂的磁盘
+I/O）时，就应该将其投入 system_long_wq。</p>
+</blockquote>
+<ul>
+<li>system_unbound_wq（系统不绑定工作队列）</li>
+</ul>
+<blockquote>
+<p>是 Linux工作队列体系中最为特殊的一员。与之前提到的 system_wq 或
+system_highpri_wq 不同，它打破了“每个 CPU 一个池子”的束缚，专门为 CPU
+密集型或长时间阻塞的任务设计。普通的 工作队列 是 Per-CPU
+的，任务在哪个 CPU 上提交，就在哪个 CPU 的工人池里排队。而
+system_unbound_wq 标记为 WQ_UNBOUND，任务不与特定的 CPU
+核绑定，可以在系统内任何允许的 CPU 上运行。虽然失去了 CPU
+缓存热度（Cache
+Locality），但换来了更高的调度灵活性。它的存在主要是为了避免干扰关键任务和提高并行吞吐量。</p>
+</blockquote>
+<ul>
+<li>system_freezable_wq</li>
+</ul>
+<blockquote>
+<p>是 Linux
+内核中专门为支持电源管理（休眠/挂起）而设计的工作队列。当系统准备进入睡眠状态（Suspend/Hibernate）时，该队列中的任务会被冻结。在
+Linux 执行 suspend
+过程中，内核必须确保所有可能干扰磁盘镜像写入或硬件状态切换的任务都停止运行。当内核启动
+Freeze 进程 时，该队列会停止派发新任务，并让现有执行者进入受控状态。</p>
+</blockquote>
+<ul>
+<li>system_power_efficient_wq</li>
+</ul>
+<blockquote>
+<p>在 Linux 内核追求能效比的过程中，system_power_efficient_wq
+扮演着节能调解员的角色。它的核心逻辑是在任务紧迫性与系统功耗之间寻找平衡。</p>
+</blockquote>
+<p>system_power_efficient_wq
+最独特的地方在于其行为取决于内核参数workqueue.power_efficient。默认状态（节能模式关闭）下，它等同于
+system_wq。任务绑定在提交它的 CPU
+上运行，以获得最佳的缓存局部性。节能模式下，它会变为 不绑定属性。这是
+Linux 内核工作队列体系中的集大成者。system_freezable_power_efficient_wq
+结合了 电源管理（冻结）与 能效优化（动态绑定）
+两大特性。可以把它理解为一个既能省电，又能在休眠前停工的执行者。在内核初始化时，这个队列同时携带了WQ_FREEZABLE和WQ_POWER_EFFICIENT两个关键标志。任务在系统挂起时必须停止。它们倾向于在已经唤醒的
+CPU 上运行，以减少 CPU
+唤醒次数。这解决了背景轮询任务在移动设备上的省电和安全挂起两大难题。平时运行时，它尽量不惊动睡休眠的
+CPU核芯。当系统关机或休眠时，它确保这些背景任务不会在硬件掉电的瞬间尝试访问设备，从而避免系统崩溃。</p>
+<p>在初始化函数的末尾，利用宏BUG_ON()确保这些内存分配没有发生问题。</p>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="内核隔离.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="chapter_19.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="内核隔离.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="chapter_19.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,703 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>引导Linux内核 - 基于ARM的Linux操作系统引导详解</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- 网页端专属反调试防复制脚本 -->
+        <script>
+        (function () {
+            // 1. 彻底禁用网页右键菜单
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+        
+            // 2. 拦截键盘快捷键（禁用 F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U）
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.metaKey && e.altKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        
+            // 3. 终极反调试卡死
+            setInterval(function () {
+                (function () {
+                    return false;
+                }['constructor']('debugger')());
+            }, 50);
+        })();
+        </script>
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "light";
+            window.path_to_searchindex_js = "searchindex-9c13310b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-45e734cc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">基于ARM的Linux操作系统引导详解</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="引导linux内核"><a class="header" href="#引导linux内核">引导Linux内核</a></h2>
+<p>真正启动Linux的是bootm、bootd、bootefi、bootelf、bootz、bootvx、bootp、nfs、rarpboot、tftpboot等命令。其中bootm用于从内存启动应用程序镜像，bootd用于默认启动，bootefi用于从内存启动efi格式的镜像程序，bootelf用于从内存启动elf格式的镜像程序，bootz用于启动zImage格式的镜像程序，Bootvx用于启动VxWork操作系统，其余的用于通过网络方式启动Linux。从bootcmd脚本中可以看出，在bootm命令运行之前，U-BOOT先把扁平设备树文件及tee文件载入内存。下面以bootm命令为例说明U-BOOT通过SD卡引导Linux的过程。</p>
+<p>要使U-BOOT能够引导Linux，它必须知道Linux内核在存储介质上的存储格式，在介绍do_tootm函数的引导过程之前，先介绍一下Linux所支持的内核文件格式。</p>
+<h3 id="linux镜像文件格式"><a class="header" href="#linux镜像文件格式">linux镜像文件格式</a></h3>
+<p>在谈到Linux内核格式时，经常听到的是vmlinux, vmlinuz,
+zImage，bzImage，uImage，FIT。vmlinux格式是静态链接的可执行内核文件，为二进制文件，可调入内存直接运行，多用于调试内核程序。vmlinuz是vmlinux的压缩文件，经解压后可直接运行。U-BOOT不使用vmlinux和vmlinuz文件。</p>
+<p>zImage和uImage是所谓的legacy（传统格式）格式，是目前U-BOOT在Linux中大量采用的格式。zImage可以自我解压，由魔术字、解压程序和vmLinux的压缩数据组成。zImage文件的格式为：</p>
+<center>
+<figure>
+<img src="./media/image38.png" style="width:1.57699in;height:2.14925in" alt="image37.pdf" />
+<figcaption>
+<p>图 5‑13 zImage文件格式</p>
+</figcaption>
+</figure>
+</center>
+<p>其中code占36个字节， 魔术字占4个字节，用以标识zImage，对arm
+Linux而言，魔术字为0x016F2818，zi_start是zImage的开始地址，zi_end是zImage的结束地址。</p>
+<p>一、 单镜像uImage镜像文件格式</p>
+<p>利用mkimage把zImage进行U-BOOT封装就形成了uImage。uImage是U-BOOT可以直接导入内存的内核镜像文件，其格式为：</p>
+<center>
+<figure>
+<img src="./media/image39.png" style="width:1.64343in;height:3.37313in" alt="image38.pdf" />
+<figcaption>
+<p>图 5‑14 uImage 文件格式</p>
+</figcaption>
+</figure>
+</center>
+<p>文件头包括魔术字、文件头CRC、文件创建时间、镜像文件大小、镜像文件载入地址、程序入口地址、数据(zImage)CRC、操作系统类型标识、CPU类型标识、镜像文件类型、压缩方式及镜像文件名。</p>
+<p>魔术字为0x27051956，用于区分uImage格式和FIT格式，文件头CRC是文件的校验码，创建时间为该镜像文件的创建时间，镜像文件大小为zImage字节数，镜像文件载入地址为该镜像文件载入内存时的相对地址，程序入口点为第一条指令的相对地址，数据CRC为zImage的校验码。</p>
+<p>操作系统标识用于表示对应的操作系统类型，比如Linux，VxWorks，NetBSD，FreeBSD等，当前的U-BOOT支持28种操作系统或固件。</p>
+<p>CPU用于表示该镜像文件所对应的CPU类型，目前支持ARM、power
+PC、x86等26种CPU。</p>
+<p>镜像文件类型标示该文件的类型，主要有standalone、kernel、Firmware、tee、script、ramdisk、multi等40种类型。</p>
+<p>压缩方式标示zImage采用的压缩方式，目前支持无压缩、gzip、bzip2、lzma、lzo和lz4等6种方式。</p>
+<p>镜像文件名为该镜像文件的名称，文件名最长不超过32个字符。</p>
+<p>二、多镜像uImage文件格式</p>
+<p>当镜像文件类型为05(multi)时，该镜像文件可包含多个不同的镜像程序，下图所示的uImage文件包含有内核文件、RAMDISK文件和设备树文件。</p>
+<center>
+<figure>
+<img src="./media/image40.png" style="width:3.71875in;height:4.17708in" alt="image39.pdf" />
+<figcaption>
+<p>图 5‑15 多镜像程序文件结构</p>
+</figcaption>
+</figure>
+</center>
+<p>三、扁平镜像树镜像文件结构</p>
+<p>FIT是Flattened Image
+Tree的缩写。与设备树结构相同，FIT程序镜像文件来自于描述镜像文件的树形结构文件。树形结构文件可以利用与设备树相同的文本语言进行描述，通过镜像文件里的配置语句确定镜像文件各个部分的使用方法。描述镜像文件结构的文件以its为后缀，
+以“/dts-v1/；”开头。树形结构由节点构成，树的顶端是根节点，
+以“/”表示。根节点包含镜像文件（images）和配置节点（configurations），以及description和#address-cells属性。description用于说明该镜像程序，#address-cell用于表示该节点地址所用单元（32位）数。U-BOOT利用节点地址访问扁平化后镜像程序的节点内容。Images节点和configurations节点可以有多个子节点，利用地址可以访问各个子节点。</p>
+<p>images节点的各个子节点可以是uImage格式的文件，也可以是扁平化设备树文件或RamDisk文件，每个子节点可以包含description、data、type、arch、os、compression、load、entry和hash属性。description用于描述该子节点，data标示该子节点所用二进制文件，type表示该二进制文件的类型，arch说明该二进制适用的处理器结构，os表示操作系统类型，commpression表示该二进制文件使用的压缩方法，load表示二进制文件的载入地址，entry表示程序的入口，hash表示文件采用的校验方法。</p>
+<p>configurations可包含多个子节点及default属性，用以定义不同程序镜像的使用方法，如在下面的结构文件中，默认配置使用config@1配置，而config@1的配置规定内核使用kernel@1节点定义的内核，设备树使用节点fdt@1定义的扁平设备树。</p>
+<pre><code>  /dts-v1/;
+
+    / {
+
+      description = "Marcus FIT test";
+
+      #address-cells = &lt;1&gt;;
+
+      images {
+
+        kernel@1 {
+
+          description = "My default kenel";
+
+          data = /incbin/("./zImage");
+
+          type = "kernel";
+
+          arch = "arm";
+
+          os = "linux";
+
+          compression = "none";
+
+          load = &lt;0x83800000&gt;;
+
+          entry = &lt;0x83800000&gt;;
+
+          hash@1 {
+
+            algo = "md5";
+
+          };
+
+        };
+
+        kernel@2 {
+
+          description = "Rescue image";
+
+          data = /incbin/("./zImage");
+
+          type = "kernel";
+
+          arch = "arm";
+
+          os = "linux";
+
+          compression = "none";
+
+          load = &lt;0x83800000&gt;;
+
+          entry = &lt;0x83800000&gt;;
+
+          hash@1 {
+
+            algo = "crc32";
+
+          };
+
+        };
+
+        fdt@1 {
+
+          description = "FDT for my cool board";
+
+          data = /incbin/("./devicetree.dtb");
+
+          type = "flat_dt";
+
+          arch = "arm";
+
+          compression = "none";
+
+          hash@1 {
+
+            algo = "crc32";
+
+          };
+
+        };
+
+      };
+
+      configurations {
+
+        default = "config@1";
+
+        config@1 {
+
+          description = "Default configuration";
+
+          kernel = "kernel@1";
+
+          fdt = "fdt@1";
+
+        };
+
+        config@2 {
+
+          description = "Rescue configuration";
+
+          kernel = "kernel@2";
+
+          fdt = "fdt@1";
+
+        };
+
+      };
+
+    };
+</code></pre>
+<p>根节点可以包含images、configurations子节点。images节点目前支持的属性包括data、data-position、data-offset、data-size、timestamp、description、arch、type、os、compression、entry和load等属性，data属性一般用以标明镜像程序或数据的存储位置。configuration节点支持kernel、ramdisk、fdt、loadble、derfault、setup、fpga、firmware和standalone等属性。此外，fit还支持加密用的hash/signature/key签名节点。key节点可以包含hash、algo、value、u-boot-ignore、signature、required和key-name-hint等属性，cipher节点可以包含cipher和algo属性，cipher和hash节点通常为images子节点的子节点。这些节点用于辨识用户真伪，各个节点的含义从其英文名称便可知晓。</p>
+<p>U-BOOT不能够直接使用.its文件，需要利用mkimage把.its文件扁平化成以.itb为后缀的二进制文件，下图给出了利用mkimage扁平化镜像程序树的输入和输出文件。</p>
+<center>
+<figure>
+<img src="./media/image41.jpg" style="width:3.29808in;height:1.89767in" alt="图片 1" />
+<figcaption>
+<p>图 5‑16 itb文件生成过程</p>
+</figcaption>
+</figure>
+</center>
+<p>下图为最终生成的itb文件头结构。与设备树类似，镜像树结构通过嵌入式结构把镜像树节点的子节点名字嵌入到其父节点，而把保存在字符串的该子节点的属性值及其在字符串块中保存的位置嵌入在该子节点内，程序通过保存位置在字符串块中查找节点属性的值。FIT通过这样的方式表示镜像树结构，详细的语法和结构可以参考设备树规范(Devicetree
+Specification)文件。</p>
+<center>
+<figure>
+<img src="./media/image42.png" style="width:3.97917in;height:4.625in" alt="image41.pdf" />
+<figcaption>
+<p>图 5‑17 fit文件结构</p>
+</figcaption>
+</figure>
+</center>
+<h3 id="通过bootm命令引导linux程序"><a class="header" href="#通过bootm命令引导linux程序">通过bootm命令引导Linux程序</a></h3>
+<p>在介绍了镜像程序的文件结构之后，接着介绍U-BOOT利用do_bootm引导Linux内核的流程。</p>
+<p>do_bootm首先检查令牌中有无包含bootm子命令。如果包含有bootm子命令，则执行bootm的子命令，完成bootm的引导过程。bootm子命令仅完成部分、而非完整的bootm引导过程。子命令包括start、loados、ramdisk、fdt、cmdline、bdt、prep和go八个子命令，其输入顺序必须是上面所列的子命令的顺序。在输入子命令时，不要求输入所有的子命令。bootm命令的格式为bootm
+addr arg1
+arg2，其中addr是内核在内存存放的地址，通常为uImage的地址，arg1为initrd的地址，arg2为fdt(设备树)地址，如果启动过程不需要initrd，则用“-”代替arg1。在前面介绍的bootcmd脚本中，bootm命令为：bootm
+${tee_addr} – {fdt_addr}，即，bootm 0x20000000 –
+0x18000000，也就是从地址0x20000000引导程序，不需要initrd，设备树存在0x18000000处。</p>
+<p>如果bootm没有跟随子命令，则需要执行完整的bootm引导过程。在检查完是否有bootm子命令后，如果在编译时选择支持HAB（高可靠引导），则要验证uImage的真伪，如果同时选择支持optee（加密引导），则还要验证zImage的真伪。最后，调用do_bootm_states函数，依次执行BOOTM_STATE_START
+、BOOTM_STATE_FINDOS、BOOTM_STATE_FINDOTHER、BOOTM_STATE_LOADOS、BOOTM_STATE_OS_PREP
+、
+BOOTM_STATE_OS_FAKE_GO、BOOTM_STATE_OS_GO等各条子命令，完成不同的任务。如果采用ramdisk文件系统，则在LOADOS子命令之后执行BOOTM_STAT_RAMDISK，
+如果CPU是PPC或MIPS类CPU，则要执行OS_CMDLINE子命令。对imx6
+Linux，所需要执行的子命令包括BOOTM_STATE_START
+、BOOTM_STATE_FINDOS、BOOTM_STATE_FINDOTHER、BOOTM_STATE_LOADOS等。每一条子命令都对应一个相应的函数，而BOOTM_STATE_OS_PREP
+、
+BOOTM_STATE_OS_FAKE_GO、BOOTM_STATE_OS_GO与操作系统有关，它们的执行由与操作系统相应的boot_fn()及boot_selected_os()函数完成。</p>
+<p>do_bootm()函数的执行过程如下图所示：</p>
+<center>
+<figure>
+<img src="./media/image43.png" style="width:3.5in;height:3.70833in" alt="image42.pdf" />
+<figcaption>
+<p>图 5‑18 do_bootm()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<p>下面详细介绍各个模块的功能。</p>
+<p>1、验证uImage的真伪</p>
+<p>对imx6solo/dualLite处理器而言，U-BOOT利用imx6solo/DualLite片上HAB模块中的CAAM加速模块及在IVT上提供的csf数据对uImage进行签名验证及解密操作。uImage的载入地址为U-BOOT环境变量中的tee_addr值。</p>
+<p>2、设置zImage参数</p>
+<p>从zImage文件头中获取zImage的开始和结束地址。zImage的头由U-BOOT的环境变量loadaddr（zImage的载入地址）指定。</p>
+<p>3、验证zImage的真伪</p>
+<p>U-BOOT利用imx6solo/DualLite片上HAB模块中的CAAM加速模块及在IVT上提供的csf数据对zImage进行签名验证及解密操作。这里需要指出的是它只对传统镜像文件进行真伪验证，FIT镜像文件指定了自身采用的真伪验证算法。</p>
+<p>4、调用do_bootm_states依次进行如下工作：</p>
+<ul>
+<li>
+<p>把bootm_header结构成员初始化为0，如果通过设置CONFIG_LMB限制了Linux使用的最低内存，则为LMB分配及初始化内存；</p>
+</li>
+<li>
+<p>在镜像文件中查找内核程序，其流程为：</p>
+</li>
+</ul>
+<center>
+<figure>
+<img src="./media/image44.png" style="width:2.1875in;height:2.10417in" alt="image43.pdf" />
+<figcaption>
+<p>图 5‑19 bootm_find_od()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<ul>
+<li>查找RamDisk、FDT或其它可加载的镜像程序，下图为支持FIT镜像程序格式时查找RamDisk程序的流程图。当镜像程序格式为传统格式时，查找RamDisk程序的流程要简单许多。此外，若选择支持raw
+initRd，还可以通过bootm命令，利用:分隔符提供initRd程序地址。initRd是bootloader
+导入的Linux文件系统，存储在RAM内，供引导程序引导Linux操作系统用。</li>
+</ul>
+<center>
+<figure>
+<img src="./media/image45.png" style="width:8.09375in;height:6.45833in" alt="image44.pdf" />
+<figcaption>
+<p>图 5‑20 bootm_find_other()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<ul>
+<li>把uImage数据解压，解压流程为：</li>
+</ul>
+<center>
+<figure>
+<img src="./media/image46.png" style="width:4.14583in;height:3.89583in" alt="image45.pdf" />
+<figcaption>
+<p>图 5‑21 bootm_load_os()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<ul>
+<li>依据uImage头中os域（操作系统）的值，通过调用bootm_os_get_boot_func()函数，利用函数指针数组boot_os[]获取相应的引导函数指针。当os域的值等于IH_OS_U_BOOT时，引导函数指针指向do_bootm_standalone()函数。当系统不需要运行操作系统时，可以将os的值设为IH_OS_U_BOOT，通过u_boot直接把固件引入内存并执行之。do_bootm_standalone函数的流程为：</li>
+</ul>
+<center>
+<figure>
+<img src="./media/image47.png" style="width:3.48958in;height:3.29167in" alt="image46.pdf" />
+<figcaption>
+<p>图 5‑22 do_bootm_standalone()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<p>当os的值为IH_OS_LINUX时，也就是当os指明uImage数据部分为Linux操作系统时，引导函数指针为do_bootm_linux()函数。最后，do_bootm_states()调用boot_selected_os()函数，通过do_bootm_linux()调用Linux引导函数。对Linux而言，os值应当设置为IH_OS_LINUX。</p>
+<p>do_bootm_linux()函数的执行流程为：</p>
+<center>
+<figure>
+<img src="./media/image48.png" style="width:1.65625in;height:2.65625in" alt="image47.pdf" />
+<figcaption>
+<p>图 5‑23 do_bootm_linux()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<p>os值不同，引导的操作系统类型不同。do__bootm_linux()函数在完成引导工作后跳转到entry指定的地址，U-BOOT结束其使命，系统开始由Linux控制。</p>
+<h3 id="spl引导"><a class="header" href="#spl引导">spl引导</a></h3>
+<p>上面介绍了U-BOOT
+proper引导方式，而当CPU片上RAM容量小时，可以采用spl引导方式。片上ROM先把spl拷贝到内存，在spl把系统及DRAM初始化后，由spl把U-BOOT程序导入内存，然后由U-BOOT引导Linux或其它类型的操作系统。从图5-3可知，spl引导方式和proper引导方式最后都跳转到board_init_r()函数。虽然两种方式都调用同样名称的函数，但函数内容并不相同，spl调用的函数定义在git/common/spl/spl.c文件中。若编译时选择支持SPL方式，则使用spl.c文件中的board_init_r()函数。该函数的主要工作是初始化，导入spl镜像文件，然后调用操作系统引导程序。其工作流程为：</p>
+<center>
+<figure>
+<img src="./media/image49.png" style="width:2.63552in;height:4.58389in" alt="image48.pdf" />
+<figcaption>
+<p>图 5‑24 利用spl引导程序流程</p>
+</figcaption>
+</figure>
+</center>
+<p>下面我们将详细介绍各个部分的工作过程及功能。</p>
+<p>board_init_r()函数首先清空spl_boot_list列表，该列表用于存储可用引导设备的驱动程序地址。spl_set_bd()函数读取主板参数的存储地址，该存储地址一般由链接程序设定。如果设置了编译开关CONFIG_SYS_SPL_MALLOC_START，则调用mem_malloc_init()设置malloc函数使用的内存起始地址和大小，并将gd-&gt;flags的GD_FLG_FULL_MALLOC_INIT位置位，表示malloc所用内存已初始化。</p>
+<p>CONFIG_SYS_SPL_MALLOC_START 是 U-BOOT
+引导加载程序中的一个宏定义，用于指定 SPL阶段中堆的起始地址。
+在嵌入式系统启动的早期阶段，片上内存通常非常有限，为了在 SPL
+阶段支持动态内存分配（使用 malloc()
+函数），需要手动划分出一块内存区域作为堆。该宏明确了 SPL
+堆内存基地址的物理位置。</p>
+<p>如果gd-&gt;flags的GD_FLG_SPL_INIT位显示spl还没有初始化，则调用spl_init()函数进行spl必须的一些初始化工作，其流程为：</p>
+<center>
+<figure>
+<img src="./media/image50.png" style="width:4.70833in;height:8.05208in" alt="image49.pdf" />
+<figcaption>
+<p>图 5‑25 spl_init流程</p>
+</figcaption>
+</figure>
+</center>
+<p>bloblist_init()用于检查CONFIG_BLOBLIST_ADDR处有无bloblist存在，若没有，则新创建一个。bloblist用于存储二进制信息，比如c结构。</p>
+<p>setup_spl_handoff()函数用于检查bloblist中是否存在交接(handoff)信息。用户可以通过结构体spl_handoff生成自己的交接清单，向操作系统传递内存布局、重置状态、网卡的MAC地址等信息。</p>
+<p>如果在配置编译开关时选择支持板级初始化，用户可以编写自己的spl_board_init()函数，对自己的系统进行特定的初始化操作。</p>
+<p>board_init_r()还要初始化看门狗、dram
+bank大小，为spl_image结构分配内存并置0。spl_image记录spl引导时必需的信息，结构为：</p>
+<p>struct spl_image_info {</p>
+<pre><code>const char *name;
+
+u8 os;
+
+uintptr_t load_addr;
+
+uintptr_t entry_point;
+
+void *fdt_addr;
+
+u32 boot_device;
+
+u32 size;
+
+u32 flags;
+
+void *arg;
+
+ulong dcrc_data;
+
+ulong dcrc_length;
+
+ulong dcrc;
+
+uint64_t rbindex;
+</code></pre>
+<p>};</p>
+<p>这些信息大部分来自于镜像文件的文件头，.arg = CONFIG_SYS_SPL_ARG_ADDR，由系统设定，而.boot_device设置为无。</p>
+<p>board_boot_order()把spl_boot_list的第一项设置为spl_boot_device()函数的地址。board_boot_order()为弱函数，用户可以通过同名函数将其覆盖。对imx6处理器而言，spl_boot_device()函数首先读取引导模式寄存器的值，然后依据引导模式，返回引导器件类型。boot_from_devices()依据spl_boot_list列表次序，依次从.u_boot_list_2_spl_image_loader_1内存段查找与spl_boot_list列表中引导器件匹配的spl_image_loader结构体。该结构包含代表引导器件的代码、器件名称及适用该器件的U-BOOT载入程序地址和程序入口地址。在找到匹配的结构体后，通过spl_load_image()函数调用引导器件对应的载入程序load_image()，尝试把U-BOOT程序载入内存。如果载入失败，重新查找下一个结构体，直到成功或尝试了spl_boot_list中的所有器件。.u_boot_list_2_spl_image_loader_1在链接时建立。</p>
+<p>在成功地把镜像文件载入内存后，依据镜像文件头中os域的值，通过不同的函数，跳转到不同的程序入口地址，比如，当系统支持optee时(os值为IH_OS_OPTEE)，
+通过spl_optee_enty()函数将系统控制权交于optee，而当os域的值为IH_OS_LINUX时，通过jump_to_image_linux()函数把系统控制权交于Linux引导函数，开始引导Linux。</p>
+<p>spl_load_image()在载入镜像文件时，需要器件提供的读入程序。对imx6
+mmc器件而言，其读入程序定义在git/common/spl/spl_mmc.c文件中，函数名为spl_mmc_load_image。利用宏定义SPL_LOAD_IMAGE_METHOD(“MMC2”,
+0, BOOT_DEVICE_MMC2,
+spl_mmc_load_image)把函数spl_mmc_load_image的地址赋予load_image函数指针。当U-BOOT支持设备树时，load_image()把U-BOOT-dtb.imx载入内存，而当U-BOOT不支持设备树时，load_image()把U-BOOT.imx载入内存。下面我们以spl_mmc_load_image()为例说明spl载入镜像程序的过程。</p>
+<p>真正完成程序载入的是函数spl_mmc_load(
+)，spl_mmc_load_image()只是依据编译开关选择，为函数spl_mmc_load()选择不同的输入参数。</p>
+<p>spl_mmc_load()首先检查指定的mmc器件是否已经初始化。如果没有初始化（mmc为NULL），则通过函数spl_mmc_find_device()获取引导器件的设备ID，依据U-BOOT是否支持设备驱动模型(Driver
+Model)，分别调用mmc_init_device()和mmc_initialize()初始化mmc期间。如果已经初始化，则跳过mmc初始化，直接与插入mmc的卡片进行握手。</p>
+<p>这里需要指出的是，若用于描述该mmc器件的结构体mmc指明可以提前对该器件初始化，则可以在mmc_init_device()函数中调用mmc_start_init()函数启动mmc初始化过程，采用异步方式初始化该器件。</p>
+<p>完成mmc初始化之后，spl_mmc_load()调用mmc_init()，读取卡片标识（CID）和卡片特定数据（CSD），协商传输频率和总线宽度（1-bit,
+4-bit 或 8-bit）。</p>
+<p>协商成功之后，spl_mmc_load()利用spl_boot_mode()获取该引导器件支持的引导模式。当使用mmc器件是，spl支持三种引导模式，分别为MMCSD_MODE_FS、MMCSD_MODE_EMMCBOOT和MMCSD_MODE_RAW。spl_boot_mode()为弱函数，用户可以编写自己的spl_boot_mode()函数覆盖原函数。</p>
+<p>如果启动模式为eMMC 引导分区 (MMCSD_MODE_EMMCBOOT)，则处理 eMMC 特有的
+boot0 或 boot1 分区切换，如果MMC驱动程序是
+精简版（MMC_TINY），使用简单切换，否则使用标准块设备分区选择。</p>
+<p>如果启动模式为原始扇区读取 (MMCSD_MODE_RAW)，优先尝试 OS。这时，如果
+spl_start_u-boot() 返回假，尝试直接加载 Linux 内核（Falcon
+Mode）。如果spl_start_u-boot()返回值为真，表示系统要加载U-BOOT（加载proper），函数会根据配置，通过不同的函数从指定分区（USE_PARTITION）或绝对扇区地址（USE_SECTOR）读取u-boot程序。</p>
+<p>如果系统支持双引导（CONFIG_DUAL_BOOTLOADER
+），通过spl_mmc_get_u-boot_raw_sector()函数确定U-BOOT主程序在 MMC
+原始扇区中具体起始位置。</p>
+<p>如果引导模式为文件系统读取 (MMCSD_MODE_FS)，则会调用
+spl_mmc_do_fs_boot。这通常涉及解析 FAT 或 EXT4 文件系统并根据文件名（如
+U-BOOT.img）加载。</p>
+<p>下图给出了spl_mmc_load_image()把U-BOOT导入内存的流程图。</p>
+<center>
+<figure>
+<img src="./media/image52.jpg" style="width:6.22388in;height:9.43292in" />
+<figcaption>
+<p>图 5‑26 spl导入U-BOOT流程图</p>
+</figcaption>
+</figure>
+</center>
+<p>当spl用于直接引导os时，利用mmc_load_image_raw_os()函数把Linux镜像读入内存，该函数的工作流程为：</p>
+<center>
+<figure>
+<img src="./media/image53.png" style="width:5.08498in;height:5.71952in" alt="image51.pdf" />
+<figcaption>
+<p>图 5‑27 mmc_load_image_raw_os函数流程</p>
+</figcaption>
+</figure>
+</center>
+<p>下面我们以spl_load_simple_fit()函数为例说明spl读入操作系统的流程。</p>
+<p>spl_load_simple_fit()有四个参数，分别为指定镜像程序信息的spl_image_info结构体，用于指定设备的spl_load_info结构体，指向所要读取设备扇区的指针及指向设备上镜像文件头的指针。该函数把文件头指针指向的文件头读入spl_image_info结构体内，spl_image_info结构体在上面已经作了介绍，它记录了镜像文件头中的大部分信息，以方便镜像文件的载入及运行。spl_load_info结构体包含必要的引导器件信息，其定义为：</p>
+<pre><code>struct spl_load_info {
+
+  void *dev;
+
+  void *priv;
+
+  int bl_len;
+
+  const char *filename;
+
+  ulong (*read)(struct spl_load_info *load, ulong sector, ulong count, void *buf);
+
+};
+</code></pre>
+<p>其中dev代表引导器件，priv指向该器件的私有数据，bl_len为该器件读写单位（块）大小。read为指向该器件读函数的函数指针，一般由该器件的驱动程序提供。</p>
+<p>spl_load_simple_fit()首先获取fit文件的大小，然后计算所需缓存区地址，并利用驱动程序提供的读函数把整个fit镜像程序读入缓存区。把镜像文件读入缓存区后，查找镜像树上的images节点。找到images节点后，
+如果系统支持双引导模式，则在configurations节点查找rbindex属性。如果找到，则把rbindex在镜像文件的偏移量（地址）赋予spl_image结构体的rbindex域。如果系统支持FPGA，spl_load_simple_fit()在images节点中查找fpga子节点，并把fpga节点对应的镜像程序写入FPGA。如果不支持FPGA或fit文件中没有fpga节点，则在镜像程序树上configuration节点查找firmware属性，如果没有找到，则在configuration节点查找kernel属性，如果还没有找到，则在cinfiguration节点查找loadable属性。如果最终没有找到，则操作失败，如果找到，则调用spl_load_fit_image()函数把对应的镜像文件载入或在内存找到相应的位置（如果已经载入），然后把数据解压。其工作流程为：</p>
+<center>
+<figure>
+<img src="./media/image54.png" style="width:3.66667in;height:6.90625in" alt="image52.pdf" />
+<figcaption>
+<p>图 5‑28 spl_load_simple_fit()函数流程</p>
+</figcaption>
+</figure>
+</center>
+<p>对于Linux系统，在把镜像文件读入内存后，jump_to_image_linux()依据镜像文件头entry域的值，确定程序的入口地址，然后做一些必要的清理工作，最后通过image_entry()函数把machid及spl_image-&gt;arg传递给操作系统并从entry地址开始执行Linux引导程序。至此，spl结束其使命，导入的镜像程序开始控制系统。</p>
+
+                        <footer class="custom-book-footer">
+                            Copyright © 2026 广州易乐舒信息技术有限公司. All Rights Reserved.<br>
+    本书之所有内容的著作权均归作者所有。仅供个人学习交流，<strong>未经授权严禁商用</strong>。
+    邮箱： <p>
+        <!-- 插入信封图标 -->
+        &#9993; 
+        <!-- 可点击的加密邮箱链接 -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;">
+            &#51;&#51;&#52;&#56;&#49;&#57;&#52;&#53;&#49;&#55;&#64;&#113;&#113;&#46;&#99;&#111;&#109;
+        </a>
+        | 
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">
+            &#104;&#97;&#105;&#54;&#49;&#54;&#56;&#55;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+    </p>
+                        </footer>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="U-BOOT运行.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="chapter_6.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="U-BOOT运行.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="chapter_6.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
