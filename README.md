@@ -10,7 +10,8 @@
 ## 🌐 快速阅读与下载
 
 *   **📖 在线阅读（最新）：** [点击这里进入 GitHub Pages 在线阅读(http://hailiu88.github.io/-ARM-Linux-/)
-* 
+*   
+* [国内快速阅读] (https://arm-linux.vercel.app)
 
 ---
 
