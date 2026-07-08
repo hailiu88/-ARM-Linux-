@@ -10,7 +10,7 @@
 ## 🌐 快速阅读与下载
 
 *   **📖 在线阅读（最新）：**
-* [点击这里进入 GitHub Pages 在线阅读](http://hailiu88.github.io/-ARM-Linux-/)
+* [点击这里进入 GitHub Pages 在线阅读](https://hailiu88.github.io/-ARM-Linux-/)
 * [国内快速阅读](https://arm-linux.vercel.app)
 * [离线下载PDF文档](https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0)
 * [通过网盘分享](https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku) (提取码: 6mku)
