@@ -54,16 +54,12 @@
 *   `media`:存放书中图片
 
 ---
+## 📚 文档入口
 
-## 🤝 如何参与贡献与反馈
-
-本书完全开源，如果您在阅读过程中发现：
-*   代码解析有误或不够精准
-*   存在错别字或排版问题
-*   有更优雅的图解或表述方式
-
-欢迎直接提交 **Issue** 或发起 **Pull Request**！让我们一起完善这本 ARM Linux 启动指南。
-
+- Vercel 在线阅读：https://arm-linux.vercel.app
+- GitHub Pages：https://hailiu88.github.io/-ARM-Linux-/
+- PDF 下载：https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0
+- 网盘分享：https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku
 ---
 
 ## 📄 开源许可证
