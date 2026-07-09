@@ -21,11 +21,10 @@
 ## 🌐 快速阅读与下载
 
 *   **📖 在线阅读（最新）：**
-* [点击这里进入 GitHub Pages 在线阅读](https://hailiu88.github.io/-ARM-Linux-/)
-* [国内快速阅读](https://arm-linux.vercel.app)
-* [离线下载PDF文档](https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0)
-* [通过网盘分享](https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku) (提取码: 6mku)
-
+* [![Documentation](https://img.shields.io/badge/在线阅读-GitHub%20Pages-blue?logo=github)](https://hailiu88.github.io/-ARM-Linux-/)
+* [![ARM Linux Documentation](https://img.shields.io/badge/国内快速阅读-vercel%20Pages-green?logo=linux)](https://arm-linux-vercel.app)
+* [![PDF电子书](https://img.shields.io/badge/📖%20PDF电子书-离线下载-orange?logo=adobeacrobatreader)](https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0)
+* [![网盘分享](https://img.shields.io/badge/网盘分享-百度网盘%20提前码:6mku-blue?logo=baidunetdisk)](https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku)
 ---
 
 ## 🗺️ 本书核心知识地图
