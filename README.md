@@ -1,7 +1,18 @@
 # 基于 ARM 的 Linux 操作系统启动详解：从电信号到 init 进程
+![SoC](https://img.shields.io/badge/SoC-NXP%20i.MX6Solo-green?style=for-the-badge)
+![CPU](https://img.shields.io/badge/CPU-ARM%20Cortex--A9-orange?style=for-the-badge&logo=arm)
+![Linux](https://img.shields.io/badge/Linux-5.10-blue?style=for-the-badge&logo=linux)
+![Yocto](https://img.shields.io/badge/Yocto-4.0-purple?style=for-the-badge)
+![Qt](https://img.shields.io/badge/Qt-6.6-green?style=for-the-badge&logo=qt)
 
-[![License: CC BY-SA 4.0](https://shields.io)](https://creativecommons.org)
-[![Powered by mdBook](https://shields.io)](https://github.com)
+![Wireless](https://img.shields.io/badge/Wireless-IEEE802.15.4-blue?style=for-the-badge)
+![WiFi](https://img.shields.io/badge/WiFi-802.11-blue?style=for-the-badge&logo=wifi)
+![Bluetooth](https://img.shields.io/badge/Bluetooth-5.0-blue?style=for-the-badge&logo=bluetooth)
+![IoT](https://img.shields.io/badge/IoT-Platform-green?style=for-the-badge)
+
+[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-blue?style=for-the-badge)](https://creativecommons.org/licenses/by-sa/4.0/)
+
+[![Powered by mdBook](https://img.shields.io/badge/Powered%20by-mdBook-orange?style=for-the-badge&logo=rust)](https://github.com/rust-lang/mdBook)
 
 本开源书籍专注于 **ARM 架构下的 Linux 操作系统启动全流程**。我们不谈抽象的概念，而是从硬件上电的第一秒开始，逐行代码、逐个阶段剖析，直击内核底层，直到用户态第一个进程 `init` 成功运行。
 
