@@ -64,7 +64,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+        <link rel="stylesheet" href="theme/custom-520d4df2.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -74,10 +74,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "light";
-            window.path_to_searchindex_js = "searchindex-98a75085.js";
+            window.path_to_searchindex_js = "searchindex-ce3d6289.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-45e734cc.js"></script>
+        <script src="toc-a5f242c9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -411,7 +411,7 @@ static struct printk_ringbuffer name = {			\
 }
 </code></pre>
 <p>该宏定义声明了名为name（name为使用者选择的字符串）的环形队列，同时声明了大小为2<sup>descbit</sup>的name_desc数组和name_infos数组作为描述环形队列的descs数组和infos数组。数据环形队列的data数据使用外部提供的text_buf。描述队列的head_id、tail_id及seq均设为默认值。数据环形队列的head_lpos及tail_lpos也设为默认值（默认值为0或-1）。</p>
-<p>printk使用的环形队列为printk_rb_static，由<code>_DEFINE_PRINTKRB(printk_rb_static, CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS, PRB_AVGBITS, &amp;__log_buf[0])</code>定义。定义中的数据队列使用日志缓冲区__log_buf，为一个全局数组变量。</p>
+<p>printk使用的环形队列为printk_rb_static，由<code>_DEFINE_PRINTKRB(printk_rb_static,  CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS, PRB_AVGBITS,  &amp;__log_buf[0])</code>定义。定义中的数据队列使用日志缓冲区__log_buf，为一个全局数组变量。</p>
 <p>宏定义_DEFINE_PRINTKRB()只是简单地对环形队列printk_rb_static进行初始化。在printk()函数使用该队列之前，还需要进行额外的设置。start_kernel()函数通过调用函数setup_log_buf(0)设置日志缓冲区。函数setup_log_buf(int
 early)定义在文件git/include/linux/printk.h和git/kernel/printk/printk.c文件中，其定义为</p>
 <pre><code>void __init setup_log_buf(int early)

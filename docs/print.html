@@ -65,7 +65,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+        <link rel="stylesheet" href="theme/custom-520d4df2.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -75,10 +75,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "light";
-            window.path_to_searchindex_js = "searchindex-98a75085.js";
+            window.path_to_searchindex_js = "searchindex-ce3d6289.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-45e734cc.js"></script>
+        <script src="toc-a5f242c9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -10671,7 +10671,7 @@ static struct printk_ringbuffer name = {			\
 }
 </code></pre>
 <p>该宏定义声明了名为name（name为使用者选择的字符串）的环形队列，同时声明了大小为2<sup>descbit</sup>的name_desc数组和name_infos数组作为描述环形队列的descs数组和infos数组。数据环形队列的data数据使用外部提供的text_buf。描述队列的head_id、tail_id及seq均设为默认值。数据环形队列的head_lpos及tail_lpos也设为默认值（默认值为0或-1）。</p>
-<p>printk使用的环形队列为printk_rb_static，由<code>_DEFINE_PRINTKRB(printk_rb_static, CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS, PRB_AVGBITS, &amp;__log_buf[0])</code>定义。定义中的数据队列使用日志缓冲区__log_buf，为一个全局数组变量。</p>
+<p>printk使用的环形队列为printk_rb_static，由<code>_DEFINE_PRINTKRB(printk_rb_static,  CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS, PRB_AVGBITS,  &amp;__log_buf[0])</code>定义。定义中的数据队列使用日志缓冲区__log_buf，为一个全局数组变量。</p>
 <p>宏定义_DEFINE_PRINTKRB()只是简单地对环形队列printk_rb_static进行初始化。在printk()函数使用该队列之前，还需要进行额外的设置。start_kernel()函数通过调用函数setup_log_buf(0)设置日志缓冲区。函数setup_log_buf(int
 early)定义在文件git/include/linux/printk.h和git/kernel/printk/printk.c文件中，其定义为</p>
 <pre><code>void __init setup_log_buf(int early)
@@ -13643,6 +13643,110 @@ set_next_event() 函数告诉硬件：“请在 xx纳秒后给我一个中断”
 <p>这正是为什么 softirq_init() 必须在时间子系统完全运转前准备就绪的原因。</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="卸载rcu回调函数-1"><a href="#卸载rcu回调函数-1" class="header">卸载RCU回调函数</a></h1>
+<h2 id="卸载rcu回调函数"><a class="header" href="#卸载rcu回调函数">卸载RCU回调函数</a></h2>
+<p>从前面介绍RCU过程中我们知道，在宽限期过后，RCU会产生中断，调用RCU回调函数，释放等待被释放的内存。这会对高性能计算造成影响。为了不影响高性能计算和实时操作，在采用全动态时钟节拍的系统中，有必要把本需要回调函数完成的任务委托给专门的内核线程（rcuo
+线程），而把RCU回调函数从采用全动态时钟节拍的CPU卸载。rcu_init_nohz()函数的目的就是构建这样一种机制，确保
+RCU 能够识别哪些 CPU
+进入了“空闲/无节拍”状态，从而避免内核为了等待这些已经“睡着”的 CPU
+报告状态而导致系统卡死（即 RCU
+宽限期无法结束）。该函数定义在文件git/kernel/rcu/tree-plugin.h中，其定义为：</p>
+<pre><code>void __init rcu_init_nohz(void)
+{
+	int cpu;
+	bool need_rcu_nocb_mask = false;
+	struct rcu_data *rdp;
+#if defined(CONFIG_NO_HZ_FULL)
+	if (tick_nohz_full_running &amp;&amp; cpumask_weight(tick_nohz_full_mask))
+		need_rcu_nocb_mask = true;
+#endif
+	if (!cpumask_available(rcu_nocb_mask) &amp;&amp; need_rcu_nocb_mask) {
+		if (!zalloc_cpumask_var(&amp;rcu_nocb_mask, GFP_KERNEL)) {
+			pr_info("rcu_nocb_mask allocation failed, callback offloading disabled.\n");
+			return;
+		}
+	}
+	if (!cpumask_available(rcu_nocb_mask))
+		return;
+#if defined(CONFIG_NO_HZ_FULL)
+	if (tick_nohz_full_running)
+		cpumask_or(rcu_nocb_mask, rcu_nocb_mask, tick_nohz_full_mask);
+#endif 
+	if (!cpumask_subset(rcu_nocb_mask, cpu_possible_mask)) {
+		pr_info("\tNote: kernel parameter 'rcu_nocbs=', 'nohz_full', or 'isolcpus=' 
+    contains nonexistent CPUs.\n");
+		cpumask_and(rcu_nocb_mask, cpu_possible_mask,  rcu_nocb_mask);
+	}
+	if (cpumask_empty(rcu_nocb_mask))
+		pr_info("\tOffload RCU callbacks from CPUs: (none).\n");
+	else
+		pr_info("\tOffload RCU callbacks from CPUs: %*pbl.\n", cpumask_pr_args(rcu_nocb_mask));
+	if (rcu_nocb_poll)
+		pr_info("\tPoll for callbacks from no-CBs CPUs.\n");
+	for_each_cpu(cpu, rcu_nocb_mask) {
+		rdp = per_cpu_ptr(&amp;rcu_data, cpu);
+		if (rcu_segcblist_empty(&amp;rdp-&gt;cblist))
+			rcu_segcblist_init(&amp;rdp-&gt;cblist);
+		rcu_segcblist_offload(&amp;rdp-&gt;cblist);
+	}
+	rcu_organize_nocb_kthreads();
+}
+</code></pre>
+<p>函数的执行逻辑为：</p>
+<center>
+<figure>
+<img src="media/image166.jpg" style="width:2.36458in;height:auto" />
+<figcaption>
+<p>图 21‑1 RCU回调函数卸载逻辑</p>
+</figcaption>
+</figure>
+</center>
+<p>该函数首先通过CPU掩码tick_nohz_full_mask和全局布尔变量tick_nohz_full_running，确定是否有CPU需要卸载RCU回调函数。tick_nohz_full_mask记录了哪些CPU被配置为全动态无节拍模式，tick_nohz_full_running用于指示系统当前是否处于
+完全无时钟节拍模式运行状态。当用户在引导时通过内核参数
+nohz_full=&lt;cpu_list&gt; 指定了部分
+CPU核芯进入无时钟节拍状态，且内核配置了 CONFIG_NO_HZ_FULL
+时，该变量会被设为 true。如果需要卸载RCU回调函数，则需要一个RCU
+卸载位图变量（掩码），因此，需要将need_rcu_nocb_mask设置为true。</p>
+<p>之后，该函数通过判断 RCU
+卸载位图是否已经分配了内存，以及当前配置是否确实需要它，来确定是否为变量rcu_nocb_mask分配内存。rcu_nocb_mask为CPU
+位图指针（RCU “隔离”位图），它的核心作用是标记哪些 CPU 进入了
+无回调模式。</p>
+<p>在为变量rcu_nocb_mask分配内存后，利用函数cpumask_or()初始化 RCU
+的“隔离”位图。它会检查内核启动参数（tick_nohz_full_mask），并将这些 CPU
+标记在 RCU 的内部掩码（指针rcu_nocb_mask指向的单元）中。这样，RCU
+就知道哪些内核不需要频繁的时钟中断来辅助宽限期的推进。</p>
+<p>在确定需要卸载RCU回调函数的CPU后，为了保证系统稳定，通过函数cpumask_and()从rcu_nocb_mask所标定的CPU中剔除不存在于cpu_possible_mask表明的CPU。</p>
+<p>函数中使用的变量rcu_nocb_poll是一个 Linux
+内核引导参数，专门用于优化配置了 nohz_full 或 rcu_nocbs
+的系统。它的作用是改变 RCU 卸载（Offloading）
+的工作模式。如果该变量为false（默认），当 CPU 将 RCU
+回调任务卸载到后端的 rcuo 守护进程时，当产生了新的回调时，内核会发送一个
+IPI来唤醒负责处理这些任务的“管家 CPU”。如果该变量为true，rcuo
+守护进程会周期性地轮询是否有待处理的回调，而不是等待中断唤醒。</p>
+<p>在利用pr_info()函数列印完CPU的RCU回调函数卸载信息后，函数通过for_each_cpu(cpu,
+rcu_nocb_mask)语句遍历由变量rcu_nocb_mask指定的需要卸载RCU回调函数的各个CPU，获取当前遍历到的
+CPU 所对应的 rcu_data 结构体指针（rcu_data 存储了该 CPU 所有的 RCU
+状态信息）。如果该 CPU 的分段回调列表（Segmented Callback
+List）尚未初始化，则进行初始化。for循环中最重要的操作是通过函数rcu_segcblist_offload将该
+CPU 的回调列表标记为 SEGCBLIST_OFFLOADED 状态。</p>
+<p>标记完成之后，通过函数rcu_organize_nocb_kthreads()为每一组 卸载的
+CPU创建一个宽限期控制线程（Grace Period Control Kthread，通常命名为
+rcuog/X），这个线程负责监控该组内所有 CPU
+的宽限期状态。此外，还会为每个需要卸载的 CPU
+创建一个独立的工作线程（Worker Kthread），这些线程专门负责执行该 CPU
+产生的回调函数。函数rcu_organize_nocb_kthreads()会将 Worker
+线程关联到其对应的宽限期控制线程上。这种层级结构（Leader-Follower
+模式）是为了减少对宽限期检测逻辑的竞争，提高伸缩性。最后，它会将这些
+rcuo 线程绑定到专门负责内务（ Housekeeping）的 CPU（非 nohz_full
+的内核）上运行，这样可以确保那些运行关键任务的 nohz_full
+内核不会被这些后台 RCU 线程抢占</p>
+<p>一旦标记完成，该 CPU 产生的所有 RCU 回调将不再由该 CPU 自己的
+RCU_SOFTIRQ（软中断）处理，而是交给专门的 rcuo 线程（通常运行在
+Housekeeping CPU 上）来异步处理。</p>
+<p>rcu_init_nohz() 的本质是告诉 RCU 系统，哪些 CPU
+不用时钟节拍，并安排好谁来替这些 CPU
+处理杂务，以防它们拖慢全局的垃圾回收进度。</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="建立定时器框架-1"><a href="#建立定时器框架-1" class="header">建立定时器框架</a></h1>
 <h2 id="建立定时器框架"><a class="header" href="#建立定时器框架">建立定时器框架</a></h2>
 <p>在卸载RCU回调函数后，start_kernel()的下一个任务是通过函数init_timers()建立软件中断框架。init_timers()
@@ -16346,6 +16450,31 @@ conf、stat、fd 等）。目录的硬链接数通常等于 2 +
 <blockquote>
 <p>register_filesystem()，注册proc类虚拟文件系统。</p>
 </blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="初始化命名空间虚拟文件系统-1"><a href="#初始化命名空间虚拟文件系统-1" class="header">初始化命名空间虚拟文件系统</a></h1>
+<h2 id="初始化命名空间虚拟文件系统"><a class="header" href="#初始化命名空间虚拟文件系统">初始化命名空间虚拟文件系统</a></h2>
+<p>在 Linux 中，命名空间虽然是逻辑上的隔离，但为了让用户态工具（如 lsns 或
+ip netns）能够看到、留存或操作这些空间，内核专门设计了一个名为 nsfs
+的不可见文件系统。如果没有
+nsfs，命名空间就只是内核里的一个结构体数字。有了它，命名空间就变成了文件对象，用户可以通过文件描述符引用它，使用
+setns() 系统调用进入这个文件代表的命名空间，甚至可以通过 unshare()
+创建并挂载它。</p>
+<p>nsfs_init()用于初始化命名空间伪文件系统。函数位于git/fs/nsfs.c，其定义为：</p>
+<pre><code>void __init nsfs_init(void)
+{
+	nsfs_mnt = kern_mount(&amp;nsfs);
+	if (IS_ERR(nsfs_mnt))
+		panic("can't set nsfs up\n");
+	nsfs_mnt-&gt;mnt_sb-&gt;s_flags &amp;= ~SB_NOUSER;
+}
+</code></pre>
+<p>函数首先通过kern_mount()在内核内部挂载这个特殊的伪文件系统。命名空间伪文件系统没有物理存储介质，它只存在于内存中。如果
+nsfs
+初始化失败，内核会直接崩溃重启，因为没有它，容器技术（PID、网络隔离等）将完全无法工作。</p>
+<p>SB_NOUSER
+标志通常用于禁止用户从外部手动挂载某个文件系统。通过清除这个标志，允许命名空间以文件的形式暴露给用户。这样用户才能在
+/proc/[PID]/ns/ 下看到那些符号链接，甚至可以通过 mount –bind
+把一个命名空间保留在某个位置，防止进程退出后命名空间被内核自动销毁。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cpuset机制初始化-1"><a href="#cpuset机制初始化-1" class="header">cpuset机制初始化</a></h1>
 <h2 id="cpuset机制初始化"><a class="header" href="#cpuset机制初始化">cpuset机制初始化</a></h2>
@@ -19267,10 +19396,10 @@ bmpr-&gt;p，即用输入参数修改当前返回时使用的栈的内容（regs
 <p>该函数最关键的是regs-&gt;ARM_pc = pc &amp; ~1和regs-&gt;ARM_sp =
 sp这两行。它们实际上是修改了函数返回地址及返回后的栈地址，正是这两句改变了程序的流向。</p>
 <p>到此为止，我们完整地介绍了PID1从内核态切换到用户态的过程。为了给大家一个完整的印象，我们在图
-30‑4给出了1号线程kernel_init()的完整调用链。</p>
+30‑5给出了1号线程kernel_init()的完整调用链。</p>
 <center>
 <figure>
-<img src="media/image188.jpg" style="width:2.70875in;height:5.41153in" />
+<img src="media/kernel_init_process.png" style="width:100%;height:auto" />
 <figcaption>
 <p>图 30‑5 Kernel_init()完整调用链</p>
 </figcaption>

@@ -64,7 +64,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/custom-0d8bd8e7.css">
+        <link rel="stylesheet" href="theme/custom-520d4df2.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -74,10 +74,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "light";
-            window.path_to_searchindex_js = "searchindex-98a75085.js";
+            window.path_to_searchindex_js = "searchindex-ce3d6289.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-45e734cc.js"></script>
+        <script src="toc-a5f242c9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -1023,10 +1023,10 @@ bmpr-&gt;p，即用输入参数修改当前返回时使用的栈的内容（regs
 <p>该函数最关键的是regs-&gt;ARM_pc = pc &amp; ~1和regs-&gt;ARM_sp =
 sp这两行。它们实际上是修改了函数返回地址及返回后的栈地址，正是这两句改变了程序的流向。</p>
 <p>到此为止，我们完整地介绍了PID1从内核态切换到用户态的过程。为了给大家一个完整的印象，我们在图
-30‑4给出了1号线程kernel_init()的完整调用链。</p>
+30‑5给出了1号线程kernel_init()的完整调用链。</p>
 <center>
 <figure>
-<img src="./media/image188.jpg" style="width:2.70875in;height:5.41153in" />
+<img src=".&#92;media&#92;kernel_init_process.png" style="width:100%;height:auto" />
 <figcaption>
 <p>图 30‑5 Kernel_init()完整调用链</p>
 </figcaption>
