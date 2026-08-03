@@ -1,5 +1,0 @@
-{
-  "cleanUrls": true,
-  "outputDirectory": "docs",
-  "buildCommand": "echo 'No build step required'"
-}
