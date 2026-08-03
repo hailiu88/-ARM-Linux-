@@ -1,6 +1,5 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/docs/$1" }
-  ]
+  "outputDirectory": "docs",
+  "buildCommand": "echo 'No build step required'"
 }
