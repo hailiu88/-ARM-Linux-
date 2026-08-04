@@ -1,21 +1,52 @@
 # 基于 ARM 的 Linux 操作系统启动详解：从电信号到 init 进程
+<!-- ========================================================= -->
+<!-- Platform -->
+<!-- ========================================================= -->
 
-[![License: CC BY-SA 4.0](https://shields.io)](https://creativecommons.org)
-[![Powered by mdBook](https://shields.io)](https://github.com)
+![](https://img.shields.io/badge/SOC-NXP%20i.MX6Solo-74B743?style=flat-square)
+![](https://img.shields.io/badge/CPU-ARM%20Cortex--A9-D97C2B?style=flat-square&logo=arm&logoColor=white)
+![](https://img.shields.io/badge/Linux-5.10-1E88E5?style=flat-square&logo=linux&logoColor=FCC624)
+![](https://img.shields.io/badge/Yocto-4.0-8E24AA?style=flat-square)
+![](https://img.shields.io/badge/Qt-6.6-62B233?style=flat-square&logo=qt&logoColor=white)
 
-本开源书籍专注于 **ARM 架构下的 Linux 操作系统启动全流程**。我们不谈抽象的概念，而是从硬件上电的第一秒开始，逐行代码、逐个阶段剖析，直击内核底层，直到用户态第一个进程 `init` 成功运行。
+<!-- ========================================================= -->
+<!-- Wireless -->
+<!-- ========================================================= -->
 
----
+![](https://img.shields.io/badge/Wireless-IEEE802.15.4-1976D2?style=flat-square)
+![](https://img.shields.io/badge/WiFi-802.11-1E88E5?style=flat-square)
+![](https://img.shields.io/badge/Bluetooth-5.0-1976D2?style=flat-square&logo=bluetooth&logoColor=white)
+![](https://img.shields.io/badge/IoT-Platform-7CB342?style=flat-square)
+
+<!-- ========================================================= -->
+<!-- License -->
+<!-- ========================================================= -->
+
+![](https://img.shields.io/badge/License-CC--BY--SA%204.0-1E88E5?style=flat-square)
+
+<!-- ========================================================= -->
+<!-- Powered By -->
+<!-- ========================================================= -->
+
+![](https://img.shields.io/badge/Powered%20by-mdBook-F28C28?style=flat-square)
+
 
 ## 🌐 快速阅读与下载
+[![](https://img.shields.io/badge/GitHub%20Pages-在线阅读-2EA44F?style=flat-square&logo=github)](https://hailiu88.github.io/-ARM-Linux-/)
 
-*   **📖 在线阅读（最新）：**
-* [点击这里进入 GitHub Pages 在线阅读](https://hailiu88.github.io/-ARM-Linux-/)
-* [国内快速阅读](https://arm-linux.vercel.app)
-* [离线下载PDF文档](https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0)
-* [通过网盘分享](https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku) (提取码: 6mku)
+[![](https://img.shields.io/badge/Vercel-国内镜像-000000?style=flat-square&logo=vercel)](https://arm-linux.vercel.app)
+
+[![](https://img.shields.io/badge/PDF-离线下载-EA4335?style=flat-square&logo=adobeacrobatreader&logoColor=white)](https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0)
+
+[![](https://img.shields.io/badge/百度网盘-提取码%206mku-1677FF?style=flat-square)](https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku)
+
+[![License: CC BY-SA 4.0](https://shields.io)](https://creativecommons.org)
+
+[![Powered by mdBook](https://shields.io)](https://github.com)
 
 ---
+
+本开源书籍专注于 **ARM 架构下的 Linux 操作系统启动全流程**。我们不谈抽象的概念，而是从硬件上电的第一秒开始，逐行代码、逐个阶段剖析，直击内核底层，直到用户态第一个进程 `init` 成功运行。
 
 ## 🗺️ 本书核心知识地图
 
