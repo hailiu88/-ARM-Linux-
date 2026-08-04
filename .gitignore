@@ -1,0 +1,10 @@
+book
+*.mp4
+*.mov
+*.avi
+*.mkv
+src/
+theme/
+book.toml
+book.css
+.vercel

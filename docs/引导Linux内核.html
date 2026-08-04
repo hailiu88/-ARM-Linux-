@@ -620,7 +620,7 @@ U-BOOT.img）加载。</p>
 如果系统支持双引导模式，则在configurations节点查找rbindex属性。如果找到，则把rbindex在镜像文件的偏移量（地址）赋予spl_image结构体的rbindex域。如果系统支持FPGA，spl_load_simple_fit()在images节点中查找fpga子节点，并把fpga节点对应的镜像程序写入FPGA。如果不支持FPGA或fit文件中没有fpga节点，则在镜像程序树上configuration节点查找firmware属性，如果没有找到，则在configuration节点查找kernel属性，如果还没有找到，则在cinfiguration节点查找loadable属性。如果最终没有找到，则操作失败，如果找到，则调用spl_load_fit_image()函数把对应的镜像文件载入或在内存找到相应的位置（如果已经载入），然后把数据解压。其工作流程为：</p>
 <center>
 <figure>
-<img src="./media/image54.png" style="width:3.66667in;height:6.90625in" alt="image52.pdf" />
+<img src="./media/spl_load_simple_fit_ch.jpg" style="width:3.66667in;height:6.90625in" alt="image52.pdf" />
 <figcaption>
 <p>图 5‑28 spl_load_simple_fit()函数流程</p>
 </figcaption>
