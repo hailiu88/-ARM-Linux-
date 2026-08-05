@@ -38,7 +38,7 @@
 
 [![](https://img.shields.io/badge/PDF-离线下载-EA4335?style=flat-square&logo=adobeacrobatreader&logoColor=white)](https://github.com/hailiu88/-ARM-Linux-/releases/tag/v1.0.0)
 
-[![](https://img.shields.io/badge/百度网盘-提取码%206mku-1677FF?style=flat-square)](https://pan.baidu.com/s/1zKdX0Lhnn50xL-TVpOj76g?pwd=6mku)
+[![](https://img.shields.io/badge/百度网盘-提取码: 3e8h-1677FF?style=flat-square)](https://pan.baidu.com/s/1HrnW9BvAXStC7CPZxlUWfA?pwd=3e8h)
 
 [![License: CC BY-SA 4.0](https://shields.io)](https://creativecommons.org)
 
